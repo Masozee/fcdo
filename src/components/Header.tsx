@@ -6,6 +6,8 @@ import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
 import * as Switch from '@radix-ui/react-switch';
 import Link from 'next/link';
 import Image from 'next/image';
+import { usePathname } from 'next/navigation';
+import { Search, Globe, Sun, Moon } from 'lucide-react';
 
 type Language = 'en' | 'es' | 'fr' | 'zh' | 'ar';
 
@@ -52,6 +54,8 @@ export function Header() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [isScrolled, setIsScrolled] = useState(false);
+  const pathname = usePathname();
+  const [mounted, setMounted] = useState(false);
   
   // Initialize dark mode from system preference or localStorage
   useEffect(() => {
@@ -96,8 +100,20 @@ export function Header() {
     localStorage.setItem('language', currentLanguage);
   }, [currentLanguage]);
 
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  // Handle dark mode toggle
   const toggleDarkMode = () => {
     setIsDarkMode(!isDarkMode);
+    if (!isDarkMode) {
+      document.documentElement.classList.add('dark');
+      localStorage.setItem('darkMode', 'true');
+    } else {
+      document.documentElement.classList.remove('dark');
+      localStorage.setItem('darkMode', 'false');
+    }
   };
 
   const changeLanguage = (lang: Language) => {
@@ -112,7 +128,7 @@ export function Header() {
   };
 
   return (
-    <header className={`sticky top-0 z-50 transition-all duration-300 ${
+    <header className={`root-header sticky top-0 z-50 transition-all duration-300 ${
       isScrolled 
         ? 'bg-white/80 dark:bg-gray-900/80 backdrop-blur-lg backdrop-saturate-150 border-b border-gray-200/50 dark:border-gray-800/50' 
         : 'bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800'

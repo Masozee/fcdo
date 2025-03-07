@@ -1,20 +1,18 @@
 import React from 'react';
 import { Hero } from '../components/Hero';
-import { WorldMap } from '../components/WorldMap';
-import { Features } from '../components/Features';
-import { Testimonials } from '../components/Testimonials';
-import { Pricing } from '../components/Pricing';
-import { CaseStudies } from '../components/CaseStudies';
+import { MapSection } from '../components/MapSection';
+import { WebsiteNarrative } from '../components/WebsiteNarrative';
+import { Publications } from '../components/Publications';
+import { FAQ } from '../components/FAQ';
 
 export default function Home() {
   return (
     <div className="min-h-screen">
       <Hero />
-      <Features />
-      <WorldMap />
-      <CaseStudies />
-      <Testimonials />
-      <Pricing />
+      <MapSection />
+      <WebsiteNarrative />
+      <Publications />
+      <FAQ />
     </div>
   );
 }
