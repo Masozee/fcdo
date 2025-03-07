@@ -1,0 +1,132 @@
+{
+  "hs2": [
+    {
+      "code": "01",
+      "description": "Live Animals",
+      "value": 15000
+    },
+    {
+      "code": "02",
+      "description": "Meat and Edible Meat Offal",
+      "value": 42000
+    },
+    {
+      "code": "27",
+      "description": "Mineral Fuels, Oils",
+      "value": 125000
+    },
+    {
+      "code": "84",
+      "description": "Machinery, Mechanical Appliances",
+      "value": 98000
+    },
+    {
+      "code": "85",
+      "description": "Electrical Machinery and Equipment",
+      "value": 87000
+    }
+  ],
+  "hs4": [
+    {
+      "code": "0101",
+      "description": "Live horses, asses, mules and hinnies",
+      "hs2_code": "01",
+      "value": 5000
+    },
+    {
+      "code": "0102",
+      "description": "Live bovine animals",
+      "hs2_code": "01",
+      "value": 10000
+    },
+    {
+      "code": "2709",
+      "description": "Petroleum oils, crude",
+      "hs2_code": "27",
+      "value": 85000
+    },
+    {
+      "code": "2710",
+      "description": "Petroleum oils, not crude",
+      "hs2_code": "27",
+      "value": 40000
+    },
+    {
+      "code": "8471",
+      "description": "Automatic data processing machines (computers)",
+      "hs2_code": "84",
+      "value": 56000
+    },
+    {
+      "code": "8517",
+      "description": "Telephone sets, including smartphones",
+      "hs2_code": "85",
+      "value": 72000
+    }
+  ],
+  "hs6": [
+    {
+      "code": "010121",
+      "description": "Pure-bred breeding horses",
+      "hs4_code": "0101",
+      "hs2_code": "01",
+      "value": 2500
+    },
+    {
+      "code": "010129",
+      "description": "Live horses, other than pure-bred breeding animals",
+      "hs4_code": "0101",
+      "hs2_code": "01",
+      "value": 2500
+    },
+    {
+      "code": "270900",
+      "description": "Petroleum oils and oils from bituminous minerals, crude",
+      "hs4_code": "2709",
+      "hs2_code": "27",
+      "value": 85000
+    },
+    {
+      "code": "271011",
+      "description": "Light oils and preparations",
+      "hs4_code": "2710",
+      "hs2_code": "27",
+      "value": 22000
+    },
+    {
+      "code": "271019",
+      "description": "Other petroleum oils, not crude",
+      "hs4_code": "2710",
+      "hs2_code": "27",
+      "value": 18000
+    },
+    {
+      "code": "847130",
+      "description": "Portable automatic data processing machines",
+      "hs4_code": "8471",
+      "hs2_code": "84",
+      "value": 35000
+    },
+    {
+      "code": "847150",
+      "description": "Processing units other than those of 8471.41 or 8471.49",
+      "hs4_code": "8471",
+      "hs2_code": "84",
+      "value": 21000
+    },
+    {
+      "code": "851712",
+      "description": "Telephones for cellular networks or other wireless networks",
+      "hs4_code": "8517",
+      "hs2_code": "85",
+      "value": 62000
+    },
+    {
+      "code": "851762",
+      "description": "Machines for the reception, conversion and transmission of voice or data",
+      "hs4_code": "8517",
+      "hs2_code": "85",
+      "value": 10000
+    }
+  ]
+} 

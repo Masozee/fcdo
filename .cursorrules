@@ -1,0 +1,182 @@
+# AI Agent Dashboard Development Rules
+
+## Technology Stack Requirements
+- Next.js 15
+- TypeScript
+- PostgreSQL
+- radix-ui
+- Proper type safety across all implementations
+- Tailwind CSS 
+
+
+## Core Development Principles
+
+### 1. Sequential Feature Development
+- Features must be developed one at a time
+- No parallel development is allowed
+- A feature must be fully completed before moving to the next one
+- Definition of "completed":
+  - All TypeScript types are properly defined
+  - Database schema changes are fully implemented
+  - API endpoints are fully functional
+  - UI components are fully responsive
+  - Unit tests are written and passing
+  - Feature is documented in the project documentation
+  - Always use null and empty handling for all data
+
+### 2. Layout Preservation Rules
+- The base layout structure must remain unchanged
+- Modifications allowed:
+  - Adding new menu items to existing navigation
+  - Creating new pages within the existing layout structure
+  - Adding new components within designated content areas
+- Modifications forbidden:
+  - Changing the overall layout structure
+  - Modifying existing navigation patterns
+  - Altering the grid system
+  - Changing the sidebar width or position
+- Always use Radix Primitives components for layout and design
+
+    - The project doesnt allow any custom css or tailwind css
+    - 
+
+### 3. Feature Development Process
+
+#### Phase 1: Planning
+1. Define feature requirements
+2. Design database schema changes
+3. Plan API endpoints
+4. Create TypeScript interfaces
+5. Document expected behavior
+
+#### Phase 2: Implementation
+1. Database
+   - Implement schema migrations
+   - Create/modify PostgreSQL tables
+   - Set up relationships
+   - Add indices and constraints
+
+2. Backend
+   - Implement API routes
+   - Set up validation
+   - Implement error handling
+   - Add authentication checks
+
+3. Frontend
+   - Create new components using Radix-Ui Primitives
+   - Implement state management
+   - Add form validation
+   - Implement error handling
+   - Add loading states
+
+#### Phase 3: Testing & Documentation
+1. Write unit tests
+2. Add API documentation
+3. Update user documentation
+4. Perform manual testing
+5. Fix any identified issues
+
+### 4. Database Management Rules
+- All tables must have proper timestamps (created_at, updated_at)
+- Foreign keys must be properly indexed
+- Soft deletion pattern must be used where appropriate
+- All columns must have explicit types
+- Use enums for predefined sets of values
+
+### 5. Component Development Rules
+- Use Radix-UI components as primary UI building blocks
+- Custom components must follow Radix-UI patterns
+- Components must be properly typed with TypeScript
+- All components must be responsive
+- Props must have proper interface definitions
+
+### 6. Feature Completion Checklist
+Before marking a feature as complete:
+
+□ Database
+  - [ ] Migrations are created and tested
+  - [ ] Indexes are optimized
+  - [ ] Data relationships are properly defined
+
+□ Backend
+  - [ ] API endpoints are implemented
+  - [ ] Input validation is in place
+  - [ ] Error handling is comprehensive
+  - [ ] Authentication/Authorization is implemented
+
+□ Frontend
+  - [ ] UI components are implemented
+  - [ ] Form validation is complete
+  - [ ] Error states are handled
+  - [ ] Loading states are implemented
+  - [ ] Responsive design is verified
+
+□ Testing
+  - [ ] Unit tests are written
+  - [ ] Integration tests are completed
+  - [ ] Manual testing is performed
+  - [ ] Edge cases are covered
+
+□ Documentation
+  - [ ] API documentation is updated
+  - [ ] User documentation is created
+  - [ ] Code is properly commented
+  - [ ] Change log is updated
+
+### 7. Menu Addition Rules
+- New menu items must follow existing naming conventions
+- Icons must be from the same icon set
+- Menu items must be properly typed
+- Menu items must include:
+  - Icon
+  - Label
+  - Path
+  - Required permissions
+  - Parent menu (if nested)
+
+### 8. Error Handling Requirements
+- All API endpoints must return proper error responses
+- Frontend must handle and display errors appropriately
+- Error messages must be user-friendly
+- Error logging must be implemented
+- Error boundaries must be used in React components
+
+### 9. Performance Requirements
+- Database queries must be optimized
+- API responses must be cached where appropriate
+- Images must be optimized
+- Bundle size must be monitored
+- Lazy loading must be implemented for routes
+
+### 10. Security Requirements
+- Input validation on both frontend and backend
+- SQL injection prevention
+- XSS prevention
+- CSRF protection
+- Rate limiting on API routes
+- Proper authentication checks
+- Secure password handling
+- Data encryption where necessary
+
+### 11. Code Quality Standards
+- All code must be properly formatted
+- All code must be properly commented
+- All code must be properly documented
+- All code must be properly tested
+
+### attention
+- Always use the latest version of the technology stack
+- Always use the latest version of the Radix-ui components
+- Always use the latest version of the PostgreSQL
+- Always use the latest version of the Next.js
+- Always use the latest version of the TypeScript
+- Always use the latest version of the Tailwind CSS
+- DONT CHANGE THE EXISTING CODE IF ITS WORKING
+- DONT ADD ANY CUSTOM CSS OR TAILWIND CSS
+- DONT BREAK THE EXISTING CODE
+- DONT ADD ANY NEW LIBRARIES
+- DONT BREAK THE EXISTING LIBRARIES
+- DONT BREAK THE EXISTING STRUCTURE
+- DONT CHANGE THE SIDEBAR
+- please inspect all code that related to the project and make sure its working before you make any changes
+- always test the project after each changes

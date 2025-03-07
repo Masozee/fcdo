@@ -1,0 +1,15 @@
+{
+  "name": "trade-data-db-creator",
+  "version": "1.0.0",
+  "description": "Script to create SQLite database for trade data",
+  "private": true,
+  "main": "create_database.js",
+  "scripts": {
+    "start": "node create_database.js"
+  },
+  "dependencies": {
+    "csv-parser": "^3.0.0",
+    "sqlite": "^5.1.1",
+    "sqlite3": "^5.1.7"
+  }
+} 
