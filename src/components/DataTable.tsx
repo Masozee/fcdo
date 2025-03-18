@@ -22,6 +22,9 @@ interface CountryTradeData {
   products: string[];
 }
 
+// Remove the union type and use separate types
+type TableData = HSCode | CountryTradeData;
+
 interface HSData {
   [key: string]: HSCode[];
 }
@@ -113,7 +116,8 @@ export function DataTable() {
           throw new Error(`HTTP error! status: ${response.status}`);
         }
         const data = await response.json();
-        setCountryData(data.data || []);
+        // The API returns the data directly as an array
+        setCountryData(Array.isArray(data) ? data : []);
       } catch (err) {
         console.error('Error fetching country data:', err);
         setError('Failed to load country data');
@@ -151,13 +155,83 @@ export function DataTable() {
         }
         const hs6Result = await hs6Response.json();
 
-        const newHsData = {
-          hs2: hs2Result.data || [],
-          hs4: hs4Result.data || [],
-          hs6: hs6Result.data || []
+        // Create a new HSData object with proper type checking
+        const newHsData: HSData = {
+          hs2: [],
+          hs4: [],
+          hs6: []
         };
+        
+        // Only assign if the data is an array and ensure proper typing
+        if (hs2Result && Array.isArray(hs2Result)) {
+          // Verify each item has the required HSCode properties
+          if (hs2Result.every((item: any) => 
+            typeof item === 'object' && 
+            item !== null && 
+            'code' in item && 
+            'description' in item && 
+            'value' in item
+          )) {
+            newHsData.hs2 = hs2Result as HSCode[];
+          }
+        } else if (hs2Result && hs2Result.hs2 && Array.isArray(hs2Result.hs2)) {
+          if (hs2Result.hs2.every((item: any) => 
+            typeof item === 'object' && 
+            item !== null && 
+            'code' in item && 
+            'description' in item && 
+            'value' in item
+          )) {
+            newHsData.hs2 = hs2Result.hs2 as HSCode[];
+          }
+        }
+        
+        if (hs4Result && Array.isArray(hs4Result)) {
+          if (hs4Result.every((item: any) => 
+            typeof item === 'object' && 
+            item !== null && 
+            'code' in item && 
+            'description' in item && 
+            'value' in item
+          )) {
+            newHsData.hs4 = hs4Result as HSCode[];
+          }
+        } else if (hs4Result && hs4Result.hs4 && Array.isArray(hs4Result.hs4)) {
+          if (hs4Result.hs4.every((item: any) => 
+            typeof item === 'object' && 
+            item !== null && 
+            'code' in item && 
+            'description' in item && 
+            'value' in item
+          )) {
+            newHsData.hs4 = hs4Result.hs4 as HSCode[];
+          }
+        }
+        
+        if (hs6Result && Array.isArray(hs6Result)) {
+          if (hs6Result.every((item: any) => 
+            typeof item === 'object' && 
+            item !== null && 
+            'code' in item && 
+            'description' in item && 
+            'value' in item
+          )) {
+            newHsData.hs6 = hs6Result as HSCode[];
+          }
+        } else if (hs6Result && hs6Result.hs6 && Array.isArray(hs6Result.hs6)) {
+          if (hs6Result.hs6.every((item: any) => 
+            typeof item === 'object' && 
+            item !== null && 
+            'code' in item && 
+            'description' in item && 
+            'value' in item
+          )) {
+            newHsData.hs6 = hs6Result.hs6 as HSCode[];
+          }
+        }
+        
         setHsData(newHsData);
-        setCurrentHSData(newHsData[selectedHSLevel]);
+        setCurrentHSData(newHsData[selectedHSLevel] || []);
       } catch (err) {
         console.error('Error fetching HS codes:', err);
         setError('Failed to load HS code data');
@@ -167,7 +241,7 @@ export function DataTable() {
     }
 
     fetchHSData();
-  }, []);
+  }, [selectedHSLevel]);
 
   // Update current HS data when the selected HS level changes
   useEffect(() => {
@@ -225,7 +299,9 @@ export function DataTable() {
       });
     } else {
       // Products tab
-      const dataToSort = [...currentHSData];
+      if (!hsData || !hsData[selectedHSLevel]) return [];
+      
+      const dataToSort = [...hsData[selectedHSLevel]];
       
       if (!sortField) return dataToSort;
       
@@ -252,7 +328,15 @@ export function DataTable() {
 
   // Apply filters to data
   const getFilteredData = () => {
-    let data = getSortedData();
+    let data: (HSCode | CountryTradeData)[] = [];
+    
+    if (activeTab === 'countries') {
+      data = getSortedData() as CountryTradeData[];
+    } else {
+      data = getSortedData() as HSCode[];
+    }
+    
+    if (!data) return [];
     
     // Apply each filter
     Object.entries(filters).forEach(([field, filterValue]) => {
@@ -262,30 +346,41 @@ export function DataTable() {
       if (field === 'minValue') {
         const minValueNum = Number(filterValue);
         if (!isNaN(minValueNum)) {
-          data = data.filter(item => {
-            // For country data, filter by total
-            if (activeTab === 'countries') {
-              return (item as CountryTradeData).total >= minValueNum;
-            }
-            // For product data, filter by value
-            else {
-              return (item as HSCode).value >= minValueNum;
-            }
-          });
+          if (activeTab === 'countries') {
+            data = data.filter(item => {
+              if ('total' in item) {
+                return (item as CountryTradeData).total >= minValueNum;
+              }
+              return false;
+            });
+          } else {
+            data = data.filter(item => {
+              if ('value' in item) {
+                return (item as HSCode).value >= minValueNum;
+              }
+              return false;
+            });
+          }
         }
         return;
       }
       
       data = data.filter(item => {
-        const value = item[field as keyof typeof item];
+        // Skip if the field doesn't exist in the item
+        if (!(field in item)) return false;
+        
+        const value = (item as any)[field];
         
         // Handle different types of values
         if (typeof value === 'string') {
           return value.toLowerCase().includes(filterValue.toLowerCase());
         } else if (Array.isArray(value)) {
-          return value.some(v => 
-            typeof v === 'string' && v.toLowerCase().includes(filterValue.toLowerCase())
-          );
+          return value.some((v: string) => {
+            if (typeof v === 'string') {
+              return v.toLowerCase().includes(filterValue.toLowerCase());
+            }
+            return false;
+          });
         } else if (typeof value === 'number') {
           return value.toString().includes(filterValue);
         }
@@ -295,6 +390,25 @@ export function DataTable() {
     });
     
     return data;
+  };
+
+  // Render cell content based on column definition
+  const renderCell = (column: Column<any>, item: any) => {
+    const value = item[column.key];
+    
+    if (column.render) {
+      return column.render(value, item);
+    }
+    
+    if (value === undefined || value === null) {
+      return '-';
+    }
+    
+    if (Array.isArray(value)) {
+      return value.join(', ');
+    }
+    
+    return value;
   };
 
   // Get paginated data
@@ -575,15 +689,7 @@ export function DataTable() {
                       <tr key={rowIndex} className="hover:bg-gray-50">
                         {columns.map((column) => (
                           <td key={column.key} className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                            {column.render 
-                              ? column.render(
-                                  column.key === 'balance' 
-                                    ? null // Balance is calculated in the render function
-                                    : row[column.key as keyof typeof row], 
-                                  row
-                                )
-                              : row[column.key as keyof typeof row]
-                            }
+                            {renderCell(column, row)}
                           </td>
                         ))}
                       </tr>

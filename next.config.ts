@@ -30,6 +30,11 @@ const nextConfig: NextConfig = {
         protocol: 'https',
         hostname: 'picsum.photos',
         pathname: '**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'flagcdn.com',
+        pathname: '**',
       }
     ]
   },
