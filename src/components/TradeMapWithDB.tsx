@@ -5,6 +5,7 @@ import * as d3 from 'd3';
 import { Feature, Geometry } from 'geojson';
 import * as Tabs from '@radix-ui/react-tabs';
 import * as Select from '@radix-ui/react-select';
+import { getCountryTradeData, getHSCodeData } from '@/lib/api-utils';
 
 interface CountryFeature extends Feature {
   properties: {
@@ -64,11 +65,8 @@ export function TradeMapWithDB() {
       setIsLoading(true);
       setError(null);
       try {
-        const response = await fetch('/api/country-trade');
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        const result = await response.json();
+        // Use cached data fetching utility instead of direct fetch
+        const result = await getCountryTradeData();
         setCountryData(result.data || []);
       } catch (err) {
         console.error('Error fetching country data:', err);
@@ -87,26 +85,10 @@ export function TradeMapWithDB() {
       setIsLoading(true);
       setError(null);
       try {
-        // Fetch HS2 codes
-        const hs2Response = await fetch('/api/hs-codes?level=hs2');
-        if (!hs2Response.ok) {
-          throw new Error(`HTTP error! status: ${hs2Response.status}`);
-        }
-        const hs2Result = await hs2Response.json();
-
-        // Fetch HS4 codes
-        const hs4Response = await fetch('/api/hs-codes?level=hs4');
-        if (!hs4Response.ok) {
-          throw new Error(`HTTP error! status: ${hs4Response.status}`);
-        }
-        const hs4Result = await hs4Response.json();
-
-        // Fetch HS6 codes
-        const hs6Response = await fetch('/api/hs-codes?level=hs6');
-        if (!hs6Response.ok) {
-          throw new Error(`HTTP error! status: ${hs6Response.status}`);
-        }
-        const hs6Result = await hs6Response.json();
+        // Use cached data fetching utilities instead of direct fetch calls
+        const hs2Result = await getHSCodeData('hs2');
+        const hs4Result = await getHSCodeData('hs4');
+        const hs6Result = await getHSCodeData('hs6');
 
         setHsData({
           hs2: hs2Result.data || [],

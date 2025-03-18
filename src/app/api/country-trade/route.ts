@@ -136,6 +136,9 @@ const generateDummyData = (year: string) => {
   ];
 };
 
+export const dynamic = 'force-dynamic'; // Default to dynamic to ensure proper fetch handling
+export const revalidate = 3600; // Revalidate every hour by default
+
 export async function GET(request: Request) {
   try {
     // Extract year from query parameters
@@ -148,7 +151,11 @@ export async function GET(request: Request) {
       const dbCheck = await db.get("SELECT name FROM sqlite_master WHERE type='table' AND name='trade'");
       if (!dbCheck) {
         console.log('Trade table does not exist yet, falling back to dummy data');
-        return NextResponse.json(generateDummyData(year));
+        return NextResponse.json(generateDummyData(year), {
+          headers: {
+            'Cache-Control': 'public, s-maxage=3600, stale-while-revalidate=86400',
+          },
+        });
       }
       
       // Add year condition to SQL query
@@ -171,7 +178,11 @@ export async function GET(request: Request) {
       // If no data was returned, fall back to dummy data
       if (!countryData || countryData.length === 0) {
         console.log('No country data found in database, falling back to dummy data');
-        return NextResponse.json(generateDummyData(year));
+        return NextResponse.json(generateDummyData(year), {
+          headers: {
+            'Cache-Control': 'public, s-maxage=3600, stale-while-revalidate=86400',
+          },
+        });
       }
 
       // Get products for each country
@@ -188,17 +199,30 @@ export async function GET(request: Request) {
         country.products = products.map(p => p.hs_code);
       }
 
-      return NextResponse.json(countryData);
+      return NextResponse.json(countryData, {
+        headers: {
+          'Cache-Control': 'public, s-maxage=3600, stale-while-revalidate=86400',
+        },
+      });
     } catch (dbError) {
       console.error('Database error, falling back to dummy data:', dbError);
       // If database query fails, return dummy data with year variations
-      return NextResponse.json(generateDummyData(year));
+      return NextResponse.json(generateDummyData(year), {
+        headers: {
+          'Cache-Control': 'public, s-maxage=3600, stale-while-revalidate=86400',
+        },
+      });
     }
   } catch (error) {
     console.error('Error fetching country trade data:', error);
     return NextResponse.json(
       { error: 'Failed to fetch country trade data' },
-      { status: 500 }
+      { 
+        status: 500,
+        headers: {
+          'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=300',
+        },
+      }
     );
   }
 } 

@@ -41,6 +41,9 @@ const dummyHSData = {
   ]
 };
 
+export const dynamic = 'force-dynamic'; // Default to dynamic to ensure proper fetch handling
+export const revalidate = 3600; // Revalidate every hour by default
+
 export async function GET(request: Request) {
   try {
     // Get the level from query parameters
@@ -56,14 +59,30 @@ export async function GET(request: Request) {
         
         // If a specific level is requested, return only that level
         if (level === 'hs2') {
-          return NextResponse.json({ hs2: dummyHSData.hs2 });
+          return NextResponse.json({ hs2: dummyHSData.hs2 }, {
+            headers: {
+              'Cache-Control': 'public, s-maxage=3600, stale-while-revalidate=86400',
+            },
+          });
         } else if (level === 'hs4') {
-          return NextResponse.json({ hs4: dummyHSData.hs4 });
+          return NextResponse.json({ hs4: dummyHSData.hs4 }, {
+            headers: {
+              'Cache-Control': 'public, s-maxage=3600, stale-while-revalidate=86400',
+            },
+          });
         } else if (level === 'hs6') {
-          return NextResponse.json({ hs6: dummyHSData.hs6 });
+          return NextResponse.json({ hs6: dummyHSData.hs6 }, {
+            headers: {
+              'Cache-Control': 'public, s-maxage=3600, stale-while-revalidate=86400',
+            },
+          });
         }
         
-        return NextResponse.json(dummyHSData);
+        return NextResponse.json(dummyHSData, {
+          headers: {
+            'Cache-Control': 'public, s-maxage=3600, stale-while-revalidate=86400',
+          },
+        });
       }
       
       // Query the database for HS2 codes (2-digit)
@@ -84,14 +103,30 @@ export async function GET(request: Request) {
         
         // If a specific level is requested, return only that level
         if (level === 'hs2') {
-          return NextResponse.json({ hs2: dummyHSData.hs2 });
+          return NextResponse.json({ hs2: dummyHSData.hs2 }, {
+            headers: {
+              'Cache-Control': 'public, s-maxage=3600, stale-while-revalidate=86400',
+            },
+          });
         } else if (level === 'hs4') {
-          return NextResponse.json({ hs4: dummyHSData.hs4 });
+          return NextResponse.json({ hs4: dummyHSData.hs4 }, {
+            headers: {
+              'Cache-Control': 'public, s-maxage=3600, stale-while-revalidate=86400',
+            },
+          });
         } else if (level === 'hs6') {
-          return NextResponse.json({ hs6: dummyHSData.hs6 });
+          return NextResponse.json({ hs6: dummyHSData.hs6 }, {
+            headers: {
+              'Cache-Control': 'public, s-maxage=3600, stale-while-revalidate=86400',
+            },
+          });
         }
         
-        return NextResponse.json(dummyHSData);
+        return NextResponse.json(dummyHSData, {
+          headers: {
+            'Cache-Control': 'public, s-maxage=3600, stale-while-revalidate=86400',
+          },
+        });
       }
 
       // Query the database for HS4 codes (4-digit)
@@ -123,11 +158,23 @@ export async function GET(request: Request) {
 
       // If a specific level is requested, return only that level
       if (level === 'hs2') {
-        return NextResponse.json({ hs2: hs2Data });
+        return NextResponse.json({ hs2: hs2Data }, {
+          headers: {
+            'Cache-Control': 'public, s-maxage=3600, stale-while-revalidate=86400',
+          },
+        });
       } else if (level === 'hs4') {
-        return NextResponse.json({ hs4: hs4Data });
+        return NextResponse.json({ hs4: hs4Data }, {
+          headers: {
+            'Cache-Control': 'public, s-maxage=3600, stale-while-revalidate=86400',
+          },
+        });
       } else if (level === 'hs6') {
-        return NextResponse.json({ hs6: hs6Data });
+        return NextResponse.json({ hs6: hs6Data }, {
+          headers: {
+            'Cache-Control': 'public, s-maxage=3600, stale-while-revalidate=86400',
+          },
+        });
       }
 
       // Otherwise return all levels
@@ -135,27 +182,52 @@ export async function GET(request: Request) {
         hs2: hs2Data,
         hs4: hs4Data,
         hs6: hs6Data
+      }, {
+        headers: {
+          'Cache-Control': 'public, s-maxage=3600, stale-while-revalidate=86400',
+        },
       });
     } catch (dbError) {
       console.error('Database error, falling back to dummy data:', dbError);
       
       // If a specific level is requested, return only that level
       if (level === 'hs2') {
-        return NextResponse.json({ hs2: dummyHSData.hs2 });
+        return NextResponse.json({ hs2: dummyHSData.hs2 }, {
+          headers: {
+            'Cache-Control': 'public, s-maxage=3600, stale-while-revalidate=86400',
+          },
+        });
       } else if (level === 'hs4') {
-        return NextResponse.json({ hs4: dummyHSData.hs4 });
+        return NextResponse.json({ hs4: dummyHSData.hs4 }, {
+          headers: {
+            'Cache-Control': 'public, s-maxage=3600, stale-while-revalidate=86400',
+          },
+        });
       } else if (level === 'hs6') {
-        return NextResponse.json({ hs6: dummyHSData.hs6 });
+        return NextResponse.json({ hs6: dummyHSData.hs6 }, {
+          headers: {
+            'Cache-Control': 'public, s-maxage=3600, stale-while-revalidate=86400',
+          },
+        });
       }
       
       // If database query fails, return dummy data
-      return NextResponse.json(dummyHSData);
+      return NextResponse.json(dummyHSData, {
+        headers: {
+          'Cache-Control': 'public, s-maxage=3600, stale-while-revalidate=86400',
+        },
+      });
     }
   } catch (error) {
     console.error('Error fetching HS code data:', error);
     return NextResponse.json(
       { error: 'Failed to fetch HS code data' },
-      { status: 500 }
+      { 
+        status: 500,
+        headers: {
+          'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=300',
+        },
+      }
     );
   }
 } 

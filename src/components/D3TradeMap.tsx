@@ -11,6 +11,7 @@ import * as Popover from '@radix-ui/react-popover';
 import * as ScrollArea from '@radix-ui/react-scroll-area';
 import * as RadioGroup from '@radix-ui/react-radio-group';
 import { useTheme } from '@/components/ui/theme-provider';
+import { getCountryTradeData, getHSCodeData } from '@/lib/api-utils';
 
 interface CountryFeature extends Feature {
   properties: {
@@ -98,12 +99,8 @@ export function D3TradeMap({ onRegionSelect, isBackground = false, focusCountry 
     async function fetchCountryData() {
       try {
         setIsLoading(true);
-        // Add time period to the API call
-        const response = await fetch(`/api/country-trade?year=${selectedTimePeriod}`);
-        if (!response.ok) {
-          throw new Error('Failed to fetch country data');
-        }
-        const data = await response.json();
+        // Use cached data fetching utility instead of direct fetch
+        const data = await getCountryTradeData(selectedTimePeriod);
         
         // Update both the current countries and the historical data
         setCountries(data);
@@ -129,11 +126,8 @@ export function D3TradeMap({ onRegionSelect, isBackground = false, focusCountry 
   useEffect(() => {
     async function fetchHSData() {
       try {
-        const response = await fetch('/api/hs-codes');
-        if (!response.ok) {
-          throw new Error('Failed to fetch HS code data');
-        }
-        const data = await response.json();
+        // Use cached data fetching utility instead of direct fetch
+        const data = await getHSCodeData();
         setHSData(data);
       } catch (error) {
         console.error('Error fetching HS code data:', error);
