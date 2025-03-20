@@ -9,7 +9,7 @@ export function Publications() {
       id: 1,
       title: "Global Trade Patterns in 2023",
       description: "A comprehensive analysis of international trade flows and emerging trends in global markets.",
-      imageUrl: "https://picsum.photos/seed/trade1/600/400",
+      imageUrl: "/graphicook-studio-apf021dql2E-unsplash.png",
       date: "March 2023",
       category: "Market Analysis"
     },
@@ -17,7 +17,7 @@ export function Publications() {
       id: 2,
       title: "Supply Chain Resilience Report",
       description: "Examining how countries and companies are rebuilding supply chains in the post-pandemic economy.",
-      imageUrl: "https://picsum.photos/seed/supply/600/400",
+      imageUrl: "getty-images-J6FmeeQ5SHc-unsplash.png",
       date: "January 2023",
       category: "Industry Report"
     },
@@ -25,7 +25,7 @@ export function Publications() {
       id: 3,
       title: "Emerging Markets Trade Outlook",
       description: "Future forecast for trade relationships between developed economies and emerging markets.",
-      imageUrl: "https://picsum.photos/seed/markets/600/400",
+      imageUrl: "/getty-images-id1c7BO1uC8-unsplash.png",
       date: "February 2023",
       category: "Economic Forecast"
     }

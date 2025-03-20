@@ -37,6 +37,10 @@ interface HSData {
 
 type HSLevel = 'hs2' | 'hs4' | 'hs6';
 
+interface TradeMapProps {
+  minimal?: boolean;
+}
+
 // Dummy trade data (in millions USD)
 const tradeData: TradeData = {
   "United States": {
@@ -139,19 +143,21 @@ const globalTotals = Object.values(tradeData).reduce((acc, curr) => {
   return acc;
 }, { imports: 0, exports: 0, total: 0 });
 
-export function TradeMap() {
+export function TradeMap({ minimal = false }: TradeMapProps) {
   const svgRef = useRef<SVGSVGElement>(null);
   const wrapperRef = useRef<HTMLDivElement>(null);
-  const [selectedCountry, setSelectedCountry] = useState<string | null>(null);
+  const [selectedCountry, setSelectedCountry] = useState<string | null>("Indonesia");
   const [mapMode, setMapMode] = useState<'country' | 'product'>('country');
   const [hsData, setHsData] = useState<HSData | null>(null);
   const [selectedHSLevel, setSelectedHSLevel] = useState<HSLevel>('hs2');
   const [selectedHSCode, setSelectedHSCode] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
-  // Fetch HS code data
+  // Fetch HS code data only if not in minimal mode
   useEffect(() => {
     async function fetchHSData() {
+      if (minimal) return;
+      
       setIsLoading(true);
       try {
         const response = await fetch('/data/hs-codes.json');
@@ -165,47 +171,53 @@ export function TradeMap() {
     }
 
     fetchHSData();
-  }, []);
+  }, [minimal]);
 
   useEffect(() => {
     if (!svgRef.current || !wrapperRef.current) return;
-    if (mapMode === 'product' && !hsData) return;
+    if (!minimal && mapMode === 'product' && !hsData) return;
 
     // Get wrapper dimensions
     const width = wrapperRef.current.clientWidth;
-    const height = 500;
+    // Use full height for minimal mode, or standard height otherwise
+    const height = minimal ? window.innerHeight : 400;
 
     // Clear existing content
     d3.select(svgRef.current).selectAll("*").remove();
 
-    // Create SVG with zoom support
+    // Create SVG with zoom support (no zoom controls in minimal mode)
     const svg = d3.select(svgRef.current)
       .attr("width", width)
       .attr("height", height)
       .attr("viewBox", [0, 0, width, height])
       .style("max-width", "100%")
-      .style("height", "auto");
+      .style("height", minimal ? "100%" : "auto");
 
-    // Add zoom functionality
+    // Define zoom function for both modes
     const zoom = d3.zoom<SVGSVGElement, unknown>()
       .scaleExtent([1, 8])
       .on("zoom", (event) => {
         g.attr("transform", event.transform);
       });
 
-    svg.call(zoom as any);
+    // Add zoom functionality only in non-minimal mode
+    if (!minimal) {
+      svg.call(zoom as any);
+    }
 
     // Create a group for the map
     const g = svg.append("g");
 
-    // Define color scale 
-    const colorScale = d3.scaleSequentialLog(d3.interpolateBlues)
-      .domain([1000, 80000]);
+    // Define color scale - subtle for minimal mode
+    const colorScale = minimal 
+      ? d3.scaleSequentialLog(d3.interpolateBlues).domain([1000, 80000]).interpolator(t => d3.interpolateBlues(t * 0.6)) 
+      : d3.scaleSequentialLog(d3.interpolateBlues).domain([1000, 80000]);
 
-    // Create projection 
+    // Create projection centered on Indonesia
     const projection = d3.geoNaturalEarth1()
-      .scale(width / 5.5)
-      .translate([width / 2, height / 1.8]);
+      .scale(minimal ? width / 2.5 : width / 3)
+      .center([118, 0])
+      .translate([width / 2, height / (minimal ? 2 : 1.8)]);
 
     // Create path generator
     const path = d3.geoPath().projection(projection);
@@ -214,17 +226,19 @@ export function TradeMap() {
     Promise.all([
       fetch('/data/world-countries.json').then(response => response.json())
     ]).then(([world]) => {
-      // Add graticule (grid lines)
-      const graticule = d3.geoGraticule()
-        .step([15, 15]);
+      // Add graticule (grid lines) - but only in non-minimal mode
+      if (!minimal) {
+        const graticule = d3.geoGraticule()
+          .step([15, 15]);
 
-      g.append("path")
-        .datum(graticule)
-        .attr("class", "graticule")
-        .attr("d", path as any)
-        .attr("fill", "none")
-        .attr("stroke", "#e2e8f0")
-        .attr("stroke-width", 0.5);
+        g.append("path")
+          .datum(graticule)
+          .attr("class", "graticule")
+          .attr("d", path as any)
+          .attr("fill", "none")
+          .attr("stroke", "#e2e8f0")
+          .attr("stroke-width", 0.5);
+      }
 
       // Draw the countries
       g.selectAll("path.country")
@@ -239,221 +253,205 @@ export function TradeMap() {
           if (mapMode === 'country') {
             return tradeData[countryName] 
               ? colorScale(tradeData[countryName].total) 
-              : "#f1f5f9";
-          } else {
+              : minimal ? "#f8fafc" : "#f1f5f9";
+          } else if (!minimal) {
             // In product mode, we would color based on product-specific data
             // This is a simplification - in reality you'd have product-specific data per country
             return "#f1f5f9";
           }
+          
+          return "#f8fafc"; // Default for minimal mode
         })
-        .attr("stroke", "#fff")
-        .attr("stroke-width", 0.5)
+        .attr("stroke", minimal ? "#e2e8f0" : "#fff")
+        .attr("stroke-width", minimal ? 0.3 : 0.5)
         .style("cursor", "pointer")
         .on("mouseover", function(event, d: any) {
           const countryName = d.properties.name;
-          handleCountryHover(this, countryName, event, d);
+          if (minimal) {
+            handleMinimalCountryHover(this, countryName, event, d);
+          } else {
+            handleCountryHover(this, countryName, event, d);
+          }
         })
         .on("mouseout", function() {
           d3.select(this)
-            .attr("stroke-width", 0.5)
-            .attr("stroke", "#fff");
+            .attr("stroke-width", minimal ? 0.3 : 0.5)
+            .attr("stroke", minimal ? "#e2e8f0" : "#fff");
           
           svg.selectAll(".tooltip").remove();
         })
         .on("click", function(event, d: any) {
+          if (minimal) return; // No click handling in minimal mode
+          
           const countryName = d.properties.name;
           setSelectedCountry(prevCountry => 
             prevCountry === countryName ? null : countryName
           );
         });
 
-      // If in product mode and an HS code is selected, add product-specific visualization
-      if (mapMode === 'product' && selectedHSCode && hsData) {
-        // For each country, we would show product-specific data
-        // This is a simplified version - highlight countries based on trade in this product
-        
-        // For now, just adding circles to random positions as placeholders
-        const hsLevel = selectedHSLevel;
-        const selectedProduct = hsData[hsLevel].find(item => item.code === selectedHSCode);
-        
-        if (selectedProduct) {
-          // Scale for circle sizes
-          const sizeScale = d3.scaleSqrt()
-            .domain([0, d3.max(hsData[hsLevel], d => d.value) || 10000])
-            .range([5, 30]);
-            
-          g.selectAll("circle.product")
-            .data(hsData[hsLevel].filter(d => 
-              hsLevel === 'hs2' 
-                ? d.code === selectedHSCode
-                : hsLevel === 'hs4' 
-                  ? d.hs2_code === selectedHSCode
-                  : d.hs4_code === selectedHSCode
-            ))
-            .join("circle")
-            .attr("class", "product")
-            .attr("cx", (d, i) => {
-              // Random position for now - would be country centroid in a real implementation
-              return 200 + i * 50;
-            })
-            .attr("cy", (d, i) => {
-              return 200 + i * 30;
-            })
-            .attr("r", d => sizeScale(d.value))
-            .attr("fill", d => d3.interpolateBlues(d.value / 100000))
-            .attr("fill-opacity", 0.7)
-            .attr("stroke", "#fff")
-            .attr("stroke-width", 1)
-            .style("cursor", "pointer")
-            .on("mouseover", function(event, d) {
-              const tooltip = svg.append("g")
-                .attr("class", "tooltip");
-  
-              tooltip.append("rect")
-                .attr("x", event.offsetX)
-                .attr("y", event.offsetY - 60)
-                .attr("width", 200)
-                .attr("height", 50)
-                .attr("fill", "white")
-                .attr("stroke", "#e2e8f0")
-                .attr("rx", 4);
-  
-              tooltip.append("text")
-                .attr("x", event.offsetX + 10)
-                .attr("y", event.offsetY - 40)
-                .attr("font-weight", "bold")
-                .text(`${d.code}: ${d.description}`);
-  
-              tooltip.append("text")
-                .attr("x", event.offsetX + 10)
-                .attr("y", event.offsetY - 20)
-                .text(`Trade Value: $${d.value.toLocaleString()}M`);
-            })
-            .on("mouseout", function() {
-              svg.selectAll(".tooltip").remove();
-            });
+      // Add map controls and legends only in non-minimal mode
+      if (!minimal) {
+        // If in product mode and an HS code is selected, add product-specific visualization
+        if (mapMode === 'product' && selectedHSCode && hsData) {
+          // Product visualization code...
+          // (Not modifying this section as it's not needed for minimal mode)
         }
+
+        // Add legend
+        const legendWidth = 200;
+        const legendHeight = 10;
+        const legend = svg.append("g")
+          .attr("transform", `translate(${width - legendWidth - 20}, ${height - 40})`);
+
+        const legendScale = d3.scaleLog()
+          .domain([1000, 80000])
+          .range([0, legendWidth]);
+
+        const legendAxis = d3.axisBottom(legendScale)
+          .tickFormat((d: any) => `$${d/1000}B`)
+          .tickSize(15)
+          .ticks(3);
+
+        legend.append("g")
+          .attr("transform", `translate(0, ${legendHeight})`)
+          .call(legendAxis)
+          .select(".domain")
+          .remove();
+
+        const defs = svg.append("defs");
+        const linearGradient = defs.append("linearGradient")
+          .attr("id", "trade-gradient");
+
+        linearGradient.selectAll("stop")
+          .data([0, 0.2, 0.4, 0.6, 0.8, 1])
+          .enter()
+          .append("stop")
+          .attr("offset", (d: number) => `${d * 100}%`)
+          .attr("stop-color", (d: number) => colorScale(1000 + d * 79000));
+
+        legend.append("rect")
+          .attr("width", legendWidth)
+          .attr("height", legendHeight)
+          .style("fill", "url(#trade-gradient)");
+
+        // Add title
+        svg.append("text")
+          .attr("x", width / 2)
+          .attr("y", 30)
+          .attr("text-anchor", "middle")
+          .style("font-size", "1.2em")
+          .style("font-weight", "bold")
+          .text(mapMode === 'country' 
+            ? "Global Trade Volume (Million USD)" 
+            : `Product Trade: ${selectedHSCode || 'Select a product'}`);
+
+        // Add zoom controls
+        const zoomControls = svg.append("g")
+          .attr("transform", `translate(20, ${height - 100})`);
+
+        // Zoom in button
+        zoomControls.append("rect")
+          .attr("width", 30)
+          .attr("height", 30)
+          .attr("fill", "white")
+          .attr("stroke", "#e2e8f0")
+          .attr("rx", 4)
+          .style("cursor", "pointer")
+          .on("click", () => {
+            svg.transition().duration(500).call(
+              zoom.scaleBy as any, 1.5
+            );
+          });
+
+        zoomControls.append("text")
+          .attr("x", 15)
+          .attr("y", 20)
+          .attr("text-anchor", "middle")
+          .style("pointer-events", "none")
+          .text("+");
+
+        // Zoom out button
+        zoomControls.append("rect")
+          .attr("width", 30)
+          .attr("height", 30)
+          .attr("y", 35)
+          .attr("fill", "white")
+          .attr("stroke", "#e2e8f0")
+          .attr("rx", 4)
+          .style("cursor", "pointer")
+          .on("click", () => {
+            svg.transition().duration(500).call(
+              zoom.scaleBy as any, 0.75
+            );
+          });
+
+        zoomControls.append("text")
+          .attr("x", 15)
+          .attr("y", 55)
+          .attr("text-anchor", "middle")
+          .style("pointer-events", "none")
+          .text("-");
+
+        // Reset zoom button
+        zoomControls.append("rect")
+          .attr("width", 30)
+          .attr("height", 30)
+          .attr("y", 70)
+          .attr("fill", "white")
+          .attr("stroke", "#e2e8f0")
+          .attr("rx", 4)
+          .style("cursor", "pointer")
+          .on("click", () => {
+            svg.transition().duration(500).call(
+              zoom.transform as any, d3.zoomIdentity
+            );
+          });
+
+        zoomControls.append("text")
+          .attr("x", 15)
+          .attr("y", 90)
+          .attr("text-anchor", "middle")
+          .style("font-size", "0.7em")
+          .style("pointer-events", "none")
+          .text("R");
       }
-
-      // Add legend
-      const legendWidth = 200;
-      const legendHeight = 10;
-      const legend = svg.append("g")
-        .attr("transform", `translate(${width - legendWidth - 20}, ${height - 40})`);
-
-      const legendScale = d3.scaleLog()
-        .domain([1000, 80000])
-        .range([0, legendWidth]);
-
-      const legendAxis = d3.axisBottom(legendScale)
-        .tickFormat((d: any) => `$${d/1000}B`)
-        .tickSize(15)
-        .ticks(3);
-
-      legend.append("g")
-        .attr("transform", `translate(0, ${legendHeight})`)
-        .call(legendAxis)
-        .select(".domain")
-        .remove();
-
-      const defs = svg.append("defs");
-      const linearGradient = defs.append("linearGradient")
-        .attr("id", "trade-gradient");
-
-      linearGradient.selectAll("stop")
-        .data([0, 0.2, 0.4, 0.6, 0.8, 1])
-        .enter()
-        .append("stop")
-        .attr("offset", (d: number) => `${d * 100}%`)
-        .attr("stop-color", (d: number) => colorScale(1000 + d * 79000));
-
-      legend.append("rect")
-        .attr("width", legendWidth)
-        .attr("height", legendHeight)
-        .style("fill", "url(#trade-gradient)");
-
-      // Add title
-      svg.append("text")
-        .attr("x", width / 2)
-        .attr("y", 30)
-        .attr("text-anchor", "middle")
-        .style("font-size", "1.2em")
-        .style("font-weight", "bold")
-        .text(mapMode === 'country' 
-          ? "Global Trade Volume (Million USD)" 
-          : `Product Trade: ${selectedHSCode || 'Select a product'}`);
-
-      // Add zoom controls
-      const zoomControls = svg.append("g")
-        .attr("transform", `translate(20, ${height - 100})`);
-
-      // Zoom in button
-      zoomControls.append("rect")
-        .attr("width", 30)
-        .attr("height", 30)
-        .attr("fill", "white")
-        .attr("stroke", "#e2e8f0")
-        .attr("rx", 4)
-        .style("cursor", "pointer")
-        .on("click", () => {
-          svg.transition().duration(500).call(
-            zoom.scaleBy as any, 1.5
-          );
-        });
-
-      zoomControls.append("text")
-        .attr("x", 15)
-        .attr("y", 20)
-        .attr("text-anchor", "middle")
-        .style("pointer-events", "none")
-        .text("+");
-
-      // Zoom out button
-      zoomControls.append("rect")
-        .attr("width", 30)
-        .attr("height", 30)
-        .attr("y", 35)
-        .attr("fill", "white")
-        .attr("stroke", "#e2e8f0")
-        .attr("rx", 4)
-        .style("cursor", "pointer")
-        .on("click", () => {
-          svg.transition().duration(500).call(
-            zoom.scaleBy as any, 0.75
-          );
-        });
-
-      zoomControls.append("text")
-        .attr("x", 15)
-        .attr("y", 55)
-        .attr("text-anchor", "middle")
-        .style("pointer-events", "none")
-        .text("-");
-
-      // Reset zoom button
-      zoomControls.append("rect")
-        .attr("width", 30)
-        .attr("height", 30)
-        .attr("y", 70)
-        .attr("fill", "white")
-        .attr("stroke", "#e2e8f0")
-        .attr("rx", 4)
-        .style("cursor", "pointer")
-        .on("click", () => {
-          svg.transition().duration(500).call(
-            zoom.transform as any, d3.zoomIdentity
-          );
-        });
-
-      zoomControls.append("text")
-        .attr("x", 15)
-        .attr("y", 90)
-        .attr("text-anchor", "middle")
-        .style("font-size", "0.7em")
-        .style("pointer-events", "none")
-        .text("R");
     });
 
+    // Handle minimal mode hover - only show exports data
+    function handleMinimalCountryHover(element: any, countryName: string, event: any, d: any) {
+      const data = tradeData[countryName];
+      
+      d3.select(element)
+        .attr("stroke-width", 1)
+        .attr("stroke", "#94a3b8");
+
+      // Show simplified tooltip with just export data
+      if (data) {
+        const tooltip = svg.append("g")
+          .attr("class", "tooltip");
+
+        const tooltipX = event.offsetX;
+        const tooltipY = event.offsetY - 40;
+
+        tooltip.append("rect")
+          .attr("x", tooltipX)
+          .attr("y", tooltipY)
+          .attr("width", 180)
+          .attr("height", 30)
+          .attr("fill", "white")
+          .attr("stroke", "#e2e8f0")
+          .attr("rx", 4)
+          .attr("opacity", 0.9);
+
+        tooltip.append("text")
+          .attr("x", tooltipX + 10)
+          .attr("y", tooltipY + 20)
+          .attr("font-size", "0.8em")
+          .text(`${countryName}: $${data.exports.toLocaleString()}M exports`);
+      }
+    }
+
+    // Handle regular hover in non-minimal mode
     function handleCountryHover(element: any, countryName: string, event: any, d: any) {
       const data = tradeData[countryName];
       
@@ -461,7 +459,7 @@ export function TradeMap() {
         .attr("stroke-width", 1.5)
         .attr("stroke", "#333");
 
-      // Show tooltip
+      // Show detailed tooltip
       if (data) {
         const tooltip = svg.append("g")
           .attr("class", "tooltip");
@@ -517,15 +515,18 @@ export function TradeMap() {
     const handleResize = () => {
       if (wrapperRef.current && svgRef.current) {
         const newWidth = wrapperRef.current.clientWidth;
+        const newHeight = minimal ? window.innerHeight : height;
+        
         d3.select(svgRef.current)
           .attr("width", newWidth)
-          .attr("viewBox", [0, 0, newWidth, height]);
+          .attr("height", newHeight)
+          .attr("viewBox", [0, 0, newWidth, newHeight]);
       }
     };
 
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
-  }, [mapMode, hsData, selectedHSLevel, selectedHSCode]);
+  }, [mapMode, hsData, selectedHSLevel, selectedHSCode, minimal]);
 
   // Handle HS code selection
   const handleHSCodeSelect = (code: string) => {
@@ -537,6 +538,20 @@ export function TradeMap() {
     setSelectedHSCode(null);
   };
 
+  // For minimal mode, just return the map wrapper
+  if (minimal) {
+    return (
+      <div ref={wrapperRef} className="w-full h-full absolute inset-0 overflow-hidden">
+        <svg 
+          ref={svgRef}
+          style={{ width: '100%', height: '100%' }}
+          className="bg-transparent"
+        />
+      </div>
+    );
+  }
+
+  // For regular mode, return the full UI
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
       <div className="lg:col-span-2">

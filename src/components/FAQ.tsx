@@ -87,24 +87,6 @@ export function FAQ() {
             ))}
           </Accordion.Root>
         </motion.div>
-
-        <motion.div 
-          className="text-center mt-12"
-          initial={{ opacity: 0 }}
-          whileInView={{ opacity: 1 }}
-          transition={{ duration: 0.5, delay: 0.5 }}
-          viewport={{ once: true }}
-        >
-          <p className="text-gray-600 dark:text-gray-300 mb-4">
-            Still have questions?
-          </p>
-          <a
-            href="#"
-            className="inline-flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 transition-colors"
-          >
-            Contact Our Support Team
-          </a>
-        </motion.div>
       </div>
     </section>
   );
