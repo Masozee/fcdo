@@ -145,80 +145,109 @@ export async function GET(request: Request) {
     const url = new URL(request.url);
     const year = url.searchParams.get('year') || '2023';
     
-    // Try to query the database for country trade data
+    // Cache headers for responses
+    const cacheHeaders = {
+      'Cache-Control': 'public, s-maxage=3600, stale-while-revalidate=86400',
+    };
+    
     try {
       // Check if the database has been initialized
       const dbCheck = await db.get("SELECT name FROM sqlite_master WHERE type='table' AND name='trade'");
+      
       if (!dbCheck) {
         console.log('Trade table does not exist yet, falling back to dummy data');
-        return NextResponse.json(generateDummyData(year), {
-          headers: {
-            'Cache-Control': 'public, s-maxage=3600, stale-while-revalidate=86400',
-          },
-        });
+        return NextResponse.json(generateDummyData(year), { headers: cacheHeaders });
       }
       
-      // Add year condition to SQL query
-      const yearCondition = year ? `AND strftime('%Y', trade.date) = '${year}'` : '';
-      
-      const countryData = await db.all(`
-        SELECT 
-          country.id,
-          country.name as country,
-          SUM(CASE WHEN trade.trade_flow = 'Import' THEN trade.trade_value_usd ELSE 0 END) as imports,
-          SUM(CASE WHEN trade.trade_flow = 'Export' THEN trade.trade_value_usd ELSE 0 END) as exports,
-          SUM(trade.trade_value_usd) as total
-        FROM trade
-        JOIN country ON trade.reporter_iso = country.iso_code
-        WHERE 1=1 ${yearCondition}
-        GROUP BY country.name
-        ORDER BY total DESC
-      `);
+      // Add year condition to SQL query, with safer string formatting
+      let countryData;
+      try {
+        if (year) {
+          countryData = await db.all(`
+            SELECT 
+              country.id,
+              country.name as country,
+              SUM(CASE WHEN trade.trade_flow = 'Import' THEN trade.trade_value_usd ELSE 0 END) as imports,
+              SUM(CASE WHEN trade.trade_flow = 'Export' THEN trade.trade_value_usd ELSE 0 END) as exports,
+              SUM(trade.trade_value_usd) as total
+            FROM trade
+            JOIN country ON trade.reporter_iso = country.iso_code
+            WHERE 1=1 AND substr(trade.date, 1, 4) = ?
+            GROUP BY country.name
+            ORDER BY total DESC
+          `, [year]);
+        } else {
+          countryData = await db.all(`
+            SELECT 
+              country.id,
+              country.name as country,
+              SUM(CASE WHEN trade.trade_flow = 'Import' THEN trade.trade_value_usd ELSE 0 END) as imports,
+              SUM(CASE WHEN trade.trade_flow = 'Export' THEN trade.trade_value_usd ELSE 0 END) as exports,
+              SUM(trade.trade_value_usd) as total
+            FROM trade
+            JOIN country ON trade.reporter_iso = country.iso_code
+            GROUP BY country.name
+            ORDER BY total DESC
+          `);
+        }
+      } catch (queryError) {
+        console.error('Error executing country data query:', queryError);
+        return NextResponse.json(generateDummyData(year), { headers: cacheHeaders });
+      }
 
       // If no data was returned, fall back to dummy data
       if (!countryData || countryData.length === 0) {
         console.log('No country data found in database, falling back to dummy data');
-        return NextResponse.json(generateDummyData(year), {
-          headers: {
-            'Cache-Control': 'public, s-maxage=3600, stale-while-revalidate=86400',
-          },
-        });
+        return NextResponse.json(generateDummyData(year), { headers: cacheHeaders });
       }
 
-      // Get products for each country
-      for (const country of countryData) {
-        const products = await db.all(`
-          SELECT DISTINCT hs_codes.hs4_code as hs_code
-          FROM trade
-          JOIN country ON trade.reporter_iso = country.iso_code
-          JOIN hs_codes ON trade.hs_code = hs_codes.hs_code
-          WHERE country.name = ? ${yearCondition}
-          LIMIT 10
-        `, [country.country]);
-        
-        country.products = products.map(p => p.hs_code);
+      // Get products for each country - safer query approach
+      try {
+        for (const country of countryData) {
+          try {
+            let products;
+            if (year) {
+              products = await db.all(`
+                SELECT DISTINCT hs_codes.hs4_code as hs_code
+                FROM trade
+                JOIN country ON trade.reporter_iso = country.iso_code
+                JOIN hs_codes ON trade.hs_code = hs_codes.hs_code
+                WHERE country.name = ? AND substr(trade.date, 1, 4) = ?
+                LIMIT 10
+              `, [country.country, year]);
+            } else {
+              products = await db.all(`
+                SELECT DISTINCT hs_codes.hs4_code as hs_code
+                FROM trade
+                JOIN country ON trade.reporter_iso = country.iso_code
+                JOIN hs_codes ON trade.hs_code = hs_codes.hs_code
+                WHERE country.name = ?
+                LIMIT 10
+              `, [country.country]);
+            }
+            
+            country.products = products.map((p: { hs_code: string }) => p.hs_code);
+          } catch (productError) {
+            console.error(`Error fetching products for country ${country.country}:`, productError);
+            country.products = [];
+          }
+        }
+      } catch (productsError) {
+        console.error('Error processing products for countries:', productsError);
+        // Continue with the data we have, just without products
       }
 
-      return NextResponse.json(countryData, {
-        headers: {
-          'Cache-Control': 'public, s-maxage=3600, stale-while-revalidate=86400',
-        },
-      });
+      return NextResponse.json(countryData, { headers: cacheHeaders });
     } catch (dbError) {
       console.error('Database error, falling back to dummy data:', dbError);
-      // If database query fails, return dummy data with year variations
-      return NextResponse.json(generateDummyData(year), {
-        headers: {
-          'Cache-Control': 'public, s-maxage=3600, stale-while-revalidate=86400',
-        },
-      });
+      return NextResponse.json(generateDummyData(year), { headers: cacheHeaders });
     }
   } catch (error) {
-    console.error('Error fetching country trade data:', error);
+    console.error('Error in country-trade API:', error);
+    // Always return a valid response, even in case of errors
     return NextResponse.json(
-      { error: 'Failed to fetch country trade data' },
+      generateDummyData('2023'),
       { 
-        status: 500,
         headers: {
           'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=300',
         },

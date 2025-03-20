@@ -9,6 +9,7 @@ import { InfoCircledIcon, BarChartIcon, GlobeIcon, ChevronRightIcon, ReloadIcon,
 import { mockGlobalHighlights, mockRegionData, mockTradeRelationships, mockTradeStatistics } from './mock-data';
 import { RegionData } from './types';
 import * as Popover from '@radix-ui/react-popover';
+import ClientOnly from '@/lib/use-client-only';
 
 // Sample countries list (in a real application, this would come from your API)
 const SAMPLE_COUNTRIES = [
@@ -199,7 +200,12 @@ export default function MapDashboardPage() {
     setSelectedCountry(null);
   };
 
-  const formatValue = (value: number, isPercentage: boolean = false, trillions: boolean = false) => {
+  const formatValue = (value: string | number, isPercentage: boolean = false, trillions: boolean = false) => {
+    if (typeof value === 'string') {
+      // If it's already a formatted string, just return it
+      return value;
+    }
+    
     if (isPercentage) {
       return `${value.toFixed(1)}%`;
     }
@@ -229,12 +235,14 @@ export default function MapDashboardPage() {
     <div className="relative h-screen w-full overflow-hidden">
       {/* Map section - full screen background */}
       <div className="absolute inset-0 w-full h-full">
-        <D3TradeMap 
-          onRegionSelect={handleRegionSelect} 
-          isBackground={true} 
-          focusCountry={selectedCountry}
-          onMapReady={handleMapReady}
-        />
+        <ClientOnly>
+          <D3TradeMap 
+            onRegionSelect={handleRegionSelect} 
+            isBackground={true} 
+            focusCountry={selectedCountry}
+            onMapReady={handleMapReady}
+          />
+        </ClientOnly>
       </div>
       
       {/* Search bar overlay - sticky on left side */}
@@ -321,288 +329,290 @@ export default function MapDashboardPage() {
       
       {/* Overlay content - information cards */}
       <div className="absolute right-0 top-0 bottom-0 w-1/3 p-6 flex flex-col bg-background/90 backdrop-blur-sm z-10 overflow-y-auto">
-        <div className="flex items-center mb-6">
-          <h1 className="text-3xl font-bold">Trade Dashboard</h1>
-          <Popover.Root>
-            <Popover.Trigger asChild>
-              <button className="ml-2 rounded-full hover:bg-muted p-1 inline-flex items-center justify-center">
-                <InfoCircledIcon className="h-5 w-5 text-muted-foreground" />
-              </button>
-            </Popover.Trigger>
-            <Popover.Portal>
-              <Popover.Content
-                className="w-80 p-4 rounded-md border bg-popover text-popover-foreground shadow-md animate-in fade-in-80 z-50"
-                sideOffset={5}
-              >
-                <div className="space-y-2">
-                  <h3 className="font-medium">About This Dashboard</h3>
-                  <p className="text-sm text-muted-foreground">
-                    This dashboard provides real-time global trade data visualization. Use the search feature to find specific countries, view detailed statistics, and analyze trade relationships between nations.
-                  </p>
-                  <p className="text-sm text-muted-foreground">
-                    Data is sourced from international trade databases and updated quarterly.
-                  </p>
-                </div>
-                <Popover.Arrow className="fill-popover" />
-              </Popover.Content>
-            </Popover.Portal>
-          </Popover.Root>
-        </div>
-        
-        {selectedCountry && (
-          <div className="mb-4 bg-muted/70 p-3 rounded-md">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                {COUNTRY_TO_ISO[selectedCountry as keyof typeof COUNTRY_TO_ISO] && (
-                  <div className="w-6 h-4 relative">
-                    <img 
-                      src={`https://flagcdn.com/${COUNTRY_TO_ISO[selectedCountry as keyof typeof COUNTRY_TO_ISO]}.svg`} 
-                      alt={`${selectedCountry} flag`}
-                      className="w-full h-full object-cover rounded absolute"
-                      onError={(e) => {
-                        // Try alternative flag source if primary one fails
-                        const target = e.target as HTMLImageElement;
-                        const countryCode = COUNTRY_TO_ISO[selectedCountry as keyof typeof COUNTRY_TO_ISO];
-                        // Try another flag API as fallback
-                        target.src = `https://flagsapi.com/${countryCode.toUpperCase()}/flat/24.png`;
-                        
-                        // If second source also fails
-                        target.onerror = () => {
-                          // Try third fallback
-                          target.src = `https://cdn.jsdelivr.net/npm/country-flag-emoji-json@2.0.0/dist/images/${countryCode}.svg`;
-                          
-                          // If all sources fail, show a placeholder
-                          target.onerror = () => {
-                            target.style.display = 'none';
-                          };
-                        };
-                      }}
-                    />
-                  </div>
-                )}
-                <h2 className="text-xl font-semibold">{selectedCountry}</h2>
-              </div>
-              <button 
-                onClick={clearSearch} 
-                className="text-xs px-2 py-1 bg-muted hover:bg-accent hover:text-accent-foreground rounded-full"
-              >
-                Clear Focus
-              </button>
-            </div>
-            <p className="text-sm text-muted-foreground mt-1">Viewing trade data related to {selectedCountry}</p>
-          </div>
-        )}
-        
-        {/* Global highlights at the top */}
-        <div className="grid grid-cols-2 gap-4 mb-6">
-          {mockGlobalHighlights.map((highlight, index) => (
-            <Card key={index} className="shadow-sm bg-background/80 backdrop-blur-sm">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground">{highlight.title}</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="flex justify-between items-center">
-                  <div className="text-2xl font-bold">{highlight.value}</div>
-                  {formatTrend(highlight.change)}
-                </div>
-                <p className="text-xs text-muted-foreground mt-1">{highlight.description}</p>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-        
-        {/* Central content with tabs */}
-        <Card className="flex-grow mb-6 shadow-sm bg-background/80 backdrop-blur-sm">
-          <Tabs.Root defaultValue="overview" className="h-full flex flex-col">
-            <CardHeader className="pb-0">
-              <div className="flex justify-between items-center">
-                <CardTitle>
-                  {selectedCountry 
-                    ? `${selectedCountry} Overview` 
-                    : selectedRegion 
-                      ? `${selectedRegion} Overview` 
-                      : 'Global Trade Analysis'}
-                </CardTitle>
-                <Tabs.List className="flex space-x-2">
-                  <Tabs.Trigger 
-                    value="overview" 
-                    className="px-3 py-1 rounded-md data-[state=active]:bg-muted"
-                  >
-                    <div className="flex items-center space-x-1">
-                      <InfoCircledIcon className="h-4 w-4" />
-                      <span>Overview</span>
-                    </div>
-                  </Tabs.Trigger>
-                  <Tabs.Trigger 
-                    value="statistics" 
-                    className="px-3 py-1 rounded-md data-[state=active]:bg-muted"
-                  >
-                    <div className="flex items-center space-x-1">
-                      <BarChartIcon className="h-4 w-4" />
-                      <span>Statistics</span>
-                    </div>
-                  </Tabs.Trigger>
-                  <Tabs.Trigger 
-                    value="relationships" 
-                    className="px-3 py-1 rounded-md data-[state=active]:bg-muted"
-                  >
-                    <div className="flex items-center space-x-1">
-                      <GlobeIcon className="h-4 w-4" />
-                      <span>Relationships</span>
-                    </div>
-                  </Tabs.Trigger>
-                </Tabs.List>
-              </div>
-            </CardHeader>
-            <CardContent className="flex-grow overflow-auto pt-4">
-              <Tabs.Content value="overview" className="h-full">
-                {regionData ? (
-                  <div className="space-y-6">
-                    <div className="grid grid-cols-3 gap-4">
-                      <Card className="bg-background/80">
-                        <CardHeader className="pb-2">
-                          <CardTitle className="text-sm">Population</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                          <div className="text-xl font-bold">{regionData.population} million</div>
-                        </CardContent>
-                      </Card>
-                      <Card className="bg-background/80">
-                        <CardHeader className="pb-2">
-                          <CardTitle className="text-sm">GDP</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                          <div className="text-xl font-bold">{formatValue(regionData.gdp, false, true)}</div>
-                        </CardContent>
-                      </Card>
-                      <Card className="bg-background/80">
-                        <CardHeader className="pb-2">
-                          <CardTitle className="text-sm">Trade Volume</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                          <div className="text-xl font-bold">{formatValue(regionData.tradeVolume, false, true)}</div>
-                        </CardContent>
-                      </Card>
-                    </div>
-                    
-                    <div>
-                      <h3 className="text-lg font-semibold mb-3">Top Trading Partners</h3>
-                      <div className="space-y-2">
-                        {regionData.topPartners.map((partner, index) => (
-                          <div key={index} className="flex justify-between items-center p-2 rounded-md bg-muted/70">
-                            <span>{partner.name}</span>
-                            <div className="flex items-center space-x-4">
-                              <span className="text-muted-foreground">{formatValue(partner.value)}</span>
-                              <span className="text-sm">{partner.percent.toFixed(1)}%</span>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                    
-                    <div>
-                      <h3 className="text-lg font-semibold mb-3">Key Products</h3>
-                      <div className="space-y-2">
-                        {regionData.keyProducts.map((product, index) => (
-                          <div key={index} className="flex justify-between items-center p-2 rounded-md bg-muted/70">
-                            <span>{product.name}</span>
-                            <div className="flex items-center space-x-4">
-                              <span className="text-muted-foreground">{formatValue(product.value)}</span>
-                              <span className="text-sm">{product.percent.toFixed(1)}%</span>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="h-full flex flex-col items-center justify-center text-center p-6">
-                    <GlobeIcon className="h-16 w-16 text-muted-foreground mb-4" />
-                    <h3 className="text-xl font-medium mb-2">Select a Country on the Map</h3>
-                    <p className="text-muted-foreground max-w-md">
-                      Click on a country on the map or use the search to view detailed trade data and statistics.
+        <ClientOnly>
+          <div className="flex items-center mb-6">
+            <h1 className="text-3xl font-bold">Trade Dashboard</h1>
+            <Popover.Root>
+              <Popover.Trigger asChild>
+                <button className="ml-2 rounded-full hover:bg-muted p-1 inline-flex items-center justify-center">
+                  <InfoCircledIcon className="h-5 w-5 text-muted-foreground" />
+                </button>
+              </Popover.Trigger>
+              <Popover.Portal>
+                <Popover.Content
+                  className="w-80 p-4 rounded-md border bg-popover text-popover-foreground shadow-md animate-in fade-in-80 z-50"
+                  sideOffset={5}
+                >
+                  <div className="space-y-2">
+                    <h3 className="font-medium">About This Dashboard</h3>
+                    <p className="text-sm text-muted-foreground">
+                      This dashboard provides real-time global trade data visualization. Use the search feature to find specific countries, view detailed statistics, and analyze trade relationships between nations.
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      Data is sourced from international trade databases and updated quarterly.
                     </p>
                   </div>
-                )}
-              </Tabs.Content>
-              
-              <Tabs.Content value="statistics" className="h-full">
-                <div className="space-y-6">
-                  <h3 className="text-lg font-semibold">Trade Statistics (2019-2023)</h3>
-                  <div className="space-y-4">
-                    {mockTradeStatistics.map((stat, index) => (
-                      <div key={index} className="p-3 rounded-md bg-muted/70">
-                        <div className="flex justify-between items-center mb-2">
-                          <span className="font-medium">{stat.year}</span>
-                          <span className={`text-sm ${stat.balance >= 0 ? 'text-green-500' : 'text-red-500'}`}>
-                            Balance: {formatValue(stat.balance)}
-                          </span>
-                        </div>
-                        <div className="grid grid-cols-2 gap-4">
-                          <div>
-                            <span className="text-sm text-muted-foreground">Imports</span>
-                            <div className="text-lg font-medium">{formatValue(stat.imports, false, true)}</div>
-                          </div>
-                          <div>
-                            <span className="text-sm text-muted-foreground">Exports</span>
-                            <div className="text-lg font-medium">{formatValue(stat.exports, false, true)}</div>
-                          </div>
+                  <Popover.Arrow className="fill-popover" />
+                </Popover.Content>
+              </Popover.Portal>
+            </Popover.Root>
+          </div>
+          
+          {selectedCountry && (
+            <div className="mb-4 bg-muted/70 p-3 rounded-md">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  {COUNTRY_TO_ISO[selectedCountry as keyof typeof COUNTRY_TO_ISO] && (
+                    <div className="w-6 h-4 relative">
+                      <img 
+                        src={`https://flagcdn.com/${COUNTRY_TO_ISO[selectedCountry as keyof typeof COUNTRY_TO_ISO]}.svg`} 
+                        alt={`${selectedCountry} flag`}
+                        className="w-full h-full object-cover rounded absolute"
+                        onError={(e) => {
+                          // Try alternative flag source if primary one fails
+                          const target = e.target as HTMLImageElement;
+                          const countryCode = COUNTRY_TO_ISO[selectedCountry as keyof typeof COUNTRY_TO_ISO];
+                          // Try another flag API as fallback
+                          target.src = `https://flagsapi.com/${countryCode.toUpperCase()}/flat/24.png`;
+                          
+                          // If second source also fails
+                          target.onerror = () => {
+                            // Try third fallback
+                            target.src = `https://cdn.jsdelivr.net/npm/country-flag-emoji-json@2.0.0/dist/images/${countryCode}.svg`;
+                            
+                            // If all sources fail, show a placeholder
+                            target.onerror = () => {
+                              target.style.display = 'none';
+                            };
+                          };
+                        }}
+                      />
+                    </div>
+                  )}
+                  <h2 className="text-xl font-semibold">{selectedCountry}</h2>
+                </div>
+                <button 
+                  onClick={clearSearch} 
+                  className="text-xs px-2 py-1 bg-muted hover:bg-accent hover:text-accent-foreground rounded-full"
+                >
+                  Clear Focus
+                </button>
+              </div>
+              <p className="text-sm text-muted-foreground mt-1">Viewing trade data related to {selectedCountry}</p>
+            </div>
+          )}
+          
+          {/* Global highlights at the top */}
+          <div className="grid grid-cols-2 gap-4 mb-6">
+            {mockGlobalHighlights.map((highlight, index) => (
+              <Card key={index} className="shadow-sm bg-background/80 backdrop-blur-sm">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-medium text-muted-foreground">{highlight.title}</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex justify-between items-center">
+                    <div className="text-2xl font-bold">{highlight.value}</div>
+                    {formatTrend(highlight.change)}
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">{highlight.description}</p>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+          
+          {/* Central content with tabs */}
+          <Card className="flex-grow mb-6 shadow-sm bg-background/80 backdrop-blur-sm">
+            <Tabs.Root defaultValue="overview" className="h-full flex flex-col">
+              <CardHeader className="pb-0">
+                <div className="flex justify-between items-center">
+                  <CardTitle>
+                    {selectedCountry 
+                      ? `${selectedCountry} Overview` 
+                      : selectedRegion 
+                        ? `${selectedRegion} Overview` 
+                        : 'Global Trade Analysis'}
+                  </CardTitle>
+                  <Tabs.List className="flex space-x-2">
+                    <Tabs.Trigger 
+                      value="overview" 
+                      className="px-3 py-1 rounded-md data-[state=active]:bg-muted"
+                    >
+                      <div className="flex items-center space-x-1">
+                        <InfoCircledIcon className="h-4 w-4" />
+                        <span>Overview</span>
+                      </div>
+                    </Tabs.Trigger>
+                    <Tabs.Trigger 
+                      value="statistics" 
+                      className="px-3 py-1 rounded-md data-[state=active]:bg-muted"
+                    >
+                      <div className="flex items-center space-x-1">
+                        <BarChartIcon className="h-4 w-4" />
+                        <span>Statistics</span>
+                      </div>
+                    </Tabs.Trigger>
+                    <Tabs.Trigger 
+                      value="relationships" 
+                      className="px-3 py-1 rounded-md data-[state=active]:bg-muted"
+                    >
+                      <div className="flex items-center space-x-1">
+                        <GlobeIcon className="h-4 w-4" />
+                        <span>Relationships</span>
+                      </div>
+                    </Tabs.Trigger>
+                  </Tabs.List>
+                </div>
+              </CardHeader>
+              <CardContent className="flex-grow overflow-auto pt-4">
+                <Tabs.Content value="overview" className="h-full">
+                  {regionData ? (
+                    <div className="space-y-6">
+                      <div className="grid grid-cols-3 gap-4">
+                        <Card className="bg-background/80">
+                          <CardHeader className="pb-2">
+                            <CardTitle className="text-sm">Population</CardTitle>
+                          </CardHeader>
+                          <CardContent>
+                            <div className="text-xl font-bold">{regionData.population} million</div>
+                          </CardContent>
+                        </Card>
+                        <Card className="bg-background/80">
+                          <CardHeader className="pb-2">
+                            <CardTitle className="text-sm">GDP</CardTitle>
+                          </CardHeader>
+                          <CardContent>
+                            <div className="text-xl font-bold">{formatValue(regionData.gdp, false, true)}</div>
+                          </CardContent>
+                        </Card>
+                        <Card className="bg-background/80">
+                          <CardHeader className="pb-2">
+                            <CardTitle className="text-sm">Trade Volume</CardTitle>
+                          </CardHeader>
+                          <CardContent>
+                            <div className="text-xl font-bold">{formatValue(regionData.tradeVolume, false, true)}</div>
+                          </CardContent>
+                        </Card>
+                      </div>
+                      
+                      <div>
+                        <h3 className="text-lg font-semibold mb-3">Top Trading Partners</h3>
+                        <div className="space-y-2">
+                          {regionData.topPartners.map((partner, index) => (
+                            <div key={index} className="flex justify-between items-center p-2 rounded-md bg-muted/70">
+                              <span>{partner.name}</span>
+                              <div className="flex items-center space-x-4">
+                                <span className="text-muted-foreground">{formatValue(partner.value)}</span>
+                                <span className="text-sm">{partner.percent.toFixed(1)}%</span>
+                              </div>
+                            </div>
+                          ))}
                         </div>
                       </div>
-                    ))}
-                  </div>
-                </div>
-              </Tabs.Content>
-              
-              <Tabs.Content value="relationships" className="h-full">
-                <div className="space-y-6">
-                  <h3 className="text-lg font-semibold">Key Trade Relationships</h3>
-                  <div className="space-y-4">
-                    {mockTradeRelationships.map((relationship, index) => (
-                      <Card key={index} className="shadow-sm bg-background/80">
-                        <CardHeader className="pb-2">
-                          <CardTitle className="text-base flex items-center">
-                            {relationship.source} 
-                            <ChevronRightIcon className="mx-2 h-4 w-4" /> 
-                            {relationship.target}
-                          </CardTitle>
-                        </CardHeader>
-                        <CardContent>
+                      
+                      <div>
+                        <h3 className="text-lg font-semibold mb-3">Key Products</h3>
+                        <div className="space-y-2">
+                          {regionData.keyProducts.map((product, index) => (
+                            <div key={index} className="flex justify-between items-center p-2 rounded-md bg-muted/70">
+                              <span>{product.name}</span>
+                              <div className="flex items-center space-x-4">
+                                <span className="text-muted-foreground">{formatValue(product.value)}</span>
+                                <span className="text-sm">{product.percent.toFixed(1)}%</span>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="h-full flex flex-col items-center justify-center text-center p-6">
+                      <GlobeIcon className="h-16 w-16 text-muted-foreground mb-4" />
+                      <h3 className="text-xl font-medium mb-2">Select a Country on the Map</h3>
+                      <p className="text-muted-foreground max-w-md">
+                        Click on a country on the map or use the search to view detailed trade data and statistics.
+                      </p>
+                    </div>
+                  )}
+                </Tabs.Content>
+                
+                <Tabs.Content value="statistics" className="h-full">
+                  <div className="space-y-6">
+                    <h3 className="text-lg font-semibold">Trade Statistics (2019-2023)</h3>
+                    <div className="space-y-4">
+                      {mockTradeStatistics.map((stat, index) => (
+                        <div key={index} className="p-3 rounded-md bg-muted/70">
                           <div className="flex justify-between items-center mb-2">
-                            <span className="text-muted-foreground">Trade Volume</span>
-                            <span className="font-medium">{formatValue(relationship.value)}</span>
+                            <span className="font-medium">{stat.year}</span>
+                            <span className={`text-sm ${stat.balance >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                              Balance: {formatValue(stat.balance)}
+                            </span>
                           </div>
-                          <div>
-                            <span className="text-sm text-muted-foreground">Key Products:</span>
-                            <div className="flex flex-wrap gap-2 mt-1">
-                              {relationship.products.map((product, idx) => (
-                                <span key={idx} className="text-xs px-2 py-1 bg-muted rounded-full">
-                                  {product}
-                                </span>
-                              ))}
+                          <div className="grid grid-cols-2 gap-4">
+                            <div>
+                              <span className="text-sm text-muted-foreground">Imports</span>
+                              <div className="text-lg font-medium">{formatValue(stat.imports)}</div>
+                            </div>
+                            <div>
+                              <span className="text-sm text-muted-foreground">Exports</span>
+                              <div className="text-lg font-medium">{formatValue(stat.exports)}</div>
                             </div>
                           </div>
-                        </CardContent>
-                      </Card>
-                    ))}
+                        </div>
+                      ))}
+                    </div>
                   </div>
-                </div>
-              </Tabs.Content>
+                </Tabs.Content>
+                
+                <Tabs.Content value="relationships" className="h-full">
+                  <div className="space-y-6">
+                    <h3 className="text-lg font-semibold">Key Trade Relationships</h3>
+                    <div className="space-y-4">
+                      {mockTradeRelationships.map((relationship, index) => (
+                        <Card key={index} className="shadow-sm bg-background/80">
+                          <CardHeader className="pb-2">
+                            <CardTitle className="text-base flex items-center">
+                              {relationship.source} 
+                              <ChevronRightIcon className="mx-2 h-4 w-4" /> 
+                              {relationship.target}
+                            </CardTitle>
+                          </CardHeader>
+                          <CardContent>
+                            <div className="flex justify-between items-center mb-2">
+                              <span className="text-muted-foreground">Trade Volume</span>
+                              <span className="font-medium">{formatValue(relationship.value)}</span>
+                            </div>
+                            <div>
+                              <span className="text-sm text-muted-foreground">Key Products:</span>
+                              <div className="flex flex-wrap gap-2 mt-1">
+                                {relationship.products.map((product, idx) => (
+                                  <span key={idx} className="text-xs px-2 py-1 bg-muted rounded-full">
+                                    {product}
+                                  </span>
+                                ))}
+                              </div>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      ))}
+                    </div>
+                  </div>
+                </Tabs.Content>
+              </CardContent>
+            </Tabs.Root>
+          </Card>
+          
+          {/* Bottom insights */}
+          <Card className="shadow-sm bg-background/80 backdrop-blur-sm">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-base">Latest Insights</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-muted-foreground">
+                Global trade growth projected to increase by 3.5% in 2024, driven by technology sector expansion and recovery in manufacturing output across developing economies.
+              </p>
             </CardContent>
-          </Tabs.Root>
-        </Card>
-        
-        {/* Bottom insights */}
-        <Card className="shadow-sm bg-background/80 backdrop-blur-sm">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-base">Latest Insights</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-sm text-muted-foreground">
-              Global trade growth projected to increase by 3.5% in 2024, driven by technology sector expansion and recovery in manufacturing output across developing economies.
-            </p>
-          </CardContent>
-        </Card>
+          </Card>
+        </ClientOnly>
       </div>
     </div>
   );

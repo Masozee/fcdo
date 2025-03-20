@@ -18,6 +18,10 @@ export default function GeoDataPage() {
   };
 
   const formatValue = (value: number, isPercentage: boolean = false, trillions: boolean = false) => {
+    if (value === null || value === undefined) {
+      return 'N/A';
+    }
+    
     if (isPercentage) {
       return `${value.toFixed(1)}%`;
     }

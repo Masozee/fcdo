@@ -41,6 +41,18 @@ const dummyHSData = {
   ]
 };
 
+// Helper function to return specific HS level data
+function returnHSLevelData(level: string, headers: HeadersInit) {
+  if (level === 'hs2') {
+    return NextResponse.json({ hs2: dummyHSData.hs2 }, { headers });
+  } else if (level === 'hs4') {
+    return NextResponse.json({ hs4: dummyHSData.hs4 }, { headers });
+  } else if (level === 'hs6') {
+    return NextResponse.json({ hs6: dummyHSData.hs6 }, { headers });
+  }
+  return NextResponse.json(dummyHSData, { headers });
+}
+
 export const dynamic = 'force-dynamic'; // Default to dynamic to ensure proper fetch handling
 export const revalidate = 3600; // Revalidate every hour by default
 
@@ -50,131 +62,97 @@ export async function GET(request: Request) {
     const url = new URL(request.url);
     const level = url.searchParams.get('level') || 'hs2';
     
-    // Try to query the database for HS codes
+    // Cache headers for responses
+    const cacheHeaders = {
+      'Cache-Control': 'public, s-maxage=3600, stale-while-revalidate=86400',
+    };
+    
     try {
       // Check if the database has been initialized
       const dbCheck = await db.get("SELECT name FROM sqlite_master WHERE type='table' AND name='hs_codes'");
       if (!dbCheck) {
         console.log('HS codes table does not exist yet, falling back to dummy data');
-        
-        // If a specific level is requested, return only that level
-        if (level === 'hs2') {
-          return NextResponse.json({ hs2: dummyHSData.hs2 }, {
-            headers: {
-              'Cache-Control': 'public, s-maxage=3600, stale-while-revalidate=86400',
-            },
-          });
-        } else if (level === 'hs4') {
-          return NextResponse.json({ hs4: dummyHSData.hs4 }, {
-            headers: {
-              'Cache-Control': 'public, s-maxage=3600, stale-while-revalidate=86400',
-            },
-          });
-        } else if (level === 'hs6') {
-          return NextResponse.json({ hs6: dummyHSData.hs6 }, {
-            headers: {
-              'Cache-Control': 'public, s-maxage=3600, stale-while-revalidate=86400',
-            },
-          });
-        }
-        
-        return NextResponse.json(dummyHSData, {
-          headers: {
-            'Cache-Control': 'public, s-maxage=3600, stale-while-revalidate=86400',
-          },
-        });
+        return returnHSLevelData(level, cacheHeaders);
       }
       
       // Query the database for HS2 codes (2-digit)
-      const hs2Data = await db.all(`
-        SELECT 
-          hs2_code as code,
-          hs2_description as description,
-          SUM(trade_value_usd) as value
-        FROM trade
-        JOIN hs_codes ON trade.hs_code = hs_codes.hs_code
-        GROUP BY hs2_code, hs2_description
-        ORDER BY value DESC
-      `);
+      let hs2Data: any[] = [];
+      try {
+        hs2Data = await db.all(`
+          SELECT 
+            hs2_code as code,
+            hs2_description as description,
+            SUM(trade_value_usd) as value
+          FROM trade
+          JOIN hs_codes ON trade.hs_code = hs_codes.hs_code
+          GROUP BY hs2_code, hs2_description
+          ORDER BY value DESC
+        `);
+      } catch (hs2Error) {
+        console.error('Error fetching HS2 codes:', hs2Error);
+        // Continue with empty array, will be handled below
+      }
 
       // If no data was returned, fall back to dummy data
       if (!hs2Data || hs2Data.length === 0) {
-        console.log('No HS code data found in database, falling back to dummy data');
-        
-        // If a specific level is requested, return only that level
-        if (level === 'hs2') {
-          return NextResponse.json({ hs2: dummyHSData.hs2 }, {
-            headers: {
-              'Cache-Control': 'public, s-maxage=3600, stale-while-revalidate=86400',
-            },
-          });
-        } else if (level === 'hs4') {
-          return NextResponse.json({ hs4: dummyHSData.hs4 }, {
-            headers: {
-              'Cache-Control': 'public, s-maxage=3600, stale-while-revalidate=86400',
-            },
-          });
-        } else if (level === 'hs6') {
-          return NextResponse.json({ hs6: dummyHSData.hs6 }, {
-            headers: {
-              'Cache-Control': 'public, s-maxage=3600, stale-while-revalidate=86400',
-            },
-          });
-        }
-        
-        return NextResponse.json(dummyHSData, {
-          headers: {
-            'Cache-Control': 'public, s-maxage=3600, stale-while-revalidate=86400',
-          },
-        });
+        console.log('No HS2 code data found in database');
+        hs2Data = dummyHSData.hs2;
       }
 
       // Query the database for HS4 codes (4-digit)
-      const hs4Data = await db.all(`
-        SELECT 
-          hs4_code as code,
-          hs4_description as description,
-          hs2_code,
-          SUM(trade_value_usd) as value
-        FROM trade
-        JOIN hs_codes ON trade.hs_code = hs_codes.hs_code
-        GROUP BY hs4_code, hs4_description, hs2_code
-        ORDER BY value DESC
-      `);
+      let hs4Data: any[] = [];
+      try {
+        hs4Data = await db.all(`
+          SELECT 
+            hs4_code as code,
+            hs4_description as description,
+            hs2_code,
+            SUM(trade_value_usd) as value
+          FROM trade
+          JOIN hs_codes ON trade.hs_code = hs_codes.hs_code
+          GROUP BY hs4_code, hs4_description, hs2_code
+          ORDER BY value DESC
+        `);
+      } catch (hs4Error) {
+        console.error('Error fetching HS4 codes:', hs4Error);
+        // Continue with empty array, will be handled below
+      }
+
+      if (!hs4Data || hs4Data.length === 0) {
+        hs4Data = dummyHSData.hs4;
+      }
 
       // Query the database for HS6 codes (6-digit)
-      const hs6Data = await db.all(`
-        SELECT 
-          hs_codes.hs_code as code,
-          hs_description as description,
-          hs2_code,
-          hs4_code,
-          SUM(trade_value_usd) as value
-        FROM trade
-        JOIN hs_codes ON trade.hs_code = hs_codes.hs_code
-        GROUP BY hs_codes.hs_code, hs_description, hs2_code, hs4_code
-        ORDER BY value DESC
-      `);
+      let hs6Data: any[] = [];
+      try {
+        hs6Data = await db.all(`
+          SELECT 
+            hs_codes.hs_code as code,
+            hs_description as description,
+            hs2_code,
+            hs4_code,
+            SUM(trade_value_usd) as value
+          FROM trade
+          JOIN hs_codes ON trade.hs_code = hs_codes.hs_code
+          GROUP BY hs_codes.hs_code, hs_description, hs2_code, hs4_code
+          ORDER BY value DESC
+        `);
+      } catch (hs6Error) {
+        console.error('Error fetching HS6 codes:', hs6Error);
+        // Continue with empty array, will be handled below
+      }
 
-      // If a specific level is requested, return only that level
+      if (!hs6Data || hs6Data.length === 0) {
+        hs6Data = dummyHSData.hs6;
+      }
+
+      // Return the specific level requested
       if (level === 'hs2') {
-        return NextResponse.json({ hs2: hs2Data }, {
-          headers: {
-            'Cache-Control': 'public, s-maxage=3600, stale-while-revalidate=86400',
-          },
-        });
+        return NextResponse.json({ hs2: hs2Data }, { headers: cacheHeaders });
       } else if (level === 'hs4') {
-        return NextResponse.json({ hs4: hs4Data }, {
-          headers: {
-            'Cache-Control': 'public, s-maxage=3600, stale-while-revalidate=86400',
-          },
-        });
+        return NextResponse.json({ hs4: hs4Data }, { headers: cacheHeaders });
       } else if (level === 'hs6') {
-        return NextResponse.json({ hs6: hs6Data }, {
-          headers: {
-            'Cache-Control': 'public, s-maxage=3600, stale-while-revalidate=86400',
-          },
-        });
+        return NextResponse.json({ hs6: hs6Data }, { headers: cacheHeaders });
       }
 
       // Otherwise return all levels
@@ -183,47 +161,18 @@ export async function GET(request: Request) {
         hs4: hs4Data,
         hs6: hs6Data
       }, {
-        headers: {
-          'Cache-Control': 'public, s-maxage=3600, stale-while-revalidate=86400',
-        },
+        headers: cacheHeaders,
       });
     } catch (dbError) {
       console.error('Database error, falling back to dummy data:', dbError);
-      
-      // If a specific level is requested, return only that level
-      if (level === 'hs2') {
-        return NextResponse.json({ hs2: dummyHSData.hs2 }, {
-          headers: {
-            'Cache-Control': 'public, s-maxage=3600, stale-while-revalidate=86400',
-          },
-        });
-      } else if (level === 'hs4') {
-        return NextResponse.json({ hs4: dummyHSData.hs4 }, {
-          headers: {
-            'Cache-Control': 'public, s-maxage=3600, stale-while-revalidate=86400',
-          },
-        });
-      } else if (level === 'hs6') {
-        return NextResponse.json({ hs6: dummyHSData.hs6 }, {
-          headers: {
-            'Cache-Control': 'public, s-maxage=3600, stale-while-revalidate=86400',
-          },
-        });
-      }
-      
-      // If database query fails, return dummy data
-      return NextResponse.json(dummyHSData, {
-        headers: {
-          'Cache-Control': 'public, s-maxage=3600, stale-while-revalidate=86400',
-        },
-      });
+      return returnHSLevelData(level, cacheHeaders);
     }
   } catch (error) {
     console.error('Error fetching HS code data:', error);
+    // Always return a valid response, even in case of errors
     return NextResponse.json(
-      { error: 'Failed to fetch HS code data' },
+      dummyHSData,
       { 
-        status: 500,
         headers: {
           'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=300',
         },

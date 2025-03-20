@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "create-db": "cd scripts && npm install && npm start"
+    "create-db": "node scripts/create-db.js"
   },
   "dependencies": {
     "@radix-ui/react-accordion": "^1.2.3",
@@ -32,13 +32,13 @@
     "@types/d3": "^7.4.3",
     "@types/topojson-client": "^3.1.5",
     "@vercel/speed-insights": "^1.2.0",
-    "better-sqlite3": "^11.8.1",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "csv-parser": "^3.2.0",
     "d3": "^7.9.0",
     "d3-scale": "^4.0.2",
     "framer-motion": "^12.4.10",
+    "hono": "^4.7.4",
     "lucide-react": "^0.477.0",
     "next": "15.2.1",
     "react": "^18.2.0",
