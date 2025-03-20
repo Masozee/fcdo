@@ -1,1 +1,0 @@
-const http = require("http"); const req = http.get("http://localhost:3000/api/v1/countries", (res) => { console.log("StatusCode:", res.statusCode); let data = ""; res.on("data", (chunk) => { data += chunk; }); res.on("end", () => { console.log(data.substring(0, 500) + "..."); }); }); req.on("error", (e) => { console.error("Error:", e.message); });

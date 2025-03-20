@@ -1,9 +1,15 @@
 import { Hono } from 'hono';
 import { handle } from 'hono/vercel';
 import { db } from '@/lib/db';
+import { cors } from 'hono/cors';
+import { logger } from 'hono/logger';
+import { prettyJSON } from 'hono/pretty-json';
 
 // Create a new Hono app
-const app = new Hono();
+const app = new Hono()
+  .use('*', logger())
+  .use('*', cors())
+  .use('*', prettyJSON());
 
 // Dummy data with year variations for when the database tables don't exist
 const generateCountryDummyData = (year: string) => {
@@ -330,8 +336,6 @@ function returnHSLevelData(c: any, level: string) {
   return c.json(dummyHSData, 200, cacheHeaders);
 }
 
-// Export the handle function for Next.js
+// Export Next.js compatible handler
 export const GET = handle(app);
 export const POST = handle(app);
-export const PUT = handle(app);
-export const DELETE = handle(app); 
