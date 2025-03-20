@@ -1,0 +1,7 @@
+"id","name","slug","order","keterangan","category_id"
+1,"HS2","nomenclature-hs2",1,"HS2 Harmonized System code",1
+3,"Export","tradeflow-export",1,,2
+4,"H6","nomenclature-h6",2,,1
+101,"Import","tradeflow-import",2,,2
+102,"Import","import",1,,4
+103,"Export","export",2,,4

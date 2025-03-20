@@ -1,0 +1,5 @@
+"id","name","keterangan"
+1,"Nomenclature","HS Code nomenclature types (HS2, HS4, HS6, etc.)"
+2,"TradeFlow","Trade flow types (Import, Export)"
+3,"HSCode","Harmonized System product codes"
+4,"Trade Flow",
