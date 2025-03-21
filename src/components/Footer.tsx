@@ -32,6 +32,11 @@ export function Footer() {
                 </Link>
               </li>
               <li>
+                <Link href="/trade-map" className="text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400">
+                  Trade Volume Map
+                </Link>
+              </li>
+              <li>
                 <Link href="/db-map" className="text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400">
                   Interactive Maps
                 </Link>

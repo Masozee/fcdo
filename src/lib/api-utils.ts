@@ -82,4 +82,29 @@ export const getProductsData = cache(async (countryId?: number) => {
   }
   
   return response.json();
+});
+
+/**
+ * Cached function to fetch total trade data without pagination
+ * @param year Optional year parameter
+ * @returns Cached total trade data for all countries
+ */
+export const getTotalTradeData = cache(async (year?: string) => {
+  // Use the new /api/total-trade endpoint with a large limit to get all data
+  const url = year 
+    ? `/api/total-trade?limit=1000&year=${year}` 
+    : '/api/total-trade?limit=1000';
+    
+  const response = await fetch(url, {
+    next: {
+      // Revalidate after 1 hour (3600 seconds)
+      revalidate: 3600,
+    },
+  });
+  
+  if (!response.ok) {
+    throw new Error('Failed to fetch total trade data');
+  }
+  
+  return response.json();
 }); 
