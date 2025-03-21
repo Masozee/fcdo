@@ -102,6 +102,14 @@ export function Header() {
                         </Link>
                       </li>
                       <li>
+                        <Link href="/countries" className="block p-3 text-gray-700 hover:bg-gray-50 rounded-md transition-colors border border-transparent hover:border-[#008080]">
+                          <div className="flex flex-col">
+                            <span className="font-bold text-[#008080]">Country Profiles</span>
+                            <span className="text-sm text-gray-500 mt-1">View detailed trade profiles and statistics for individual countries</span>
+                          </div>
+                        </Link>
+                      </li>
+                      <li>
                         <Link href="/map-dashboard" className="block p-3 text-gray-700 hover:bg-gray-50 rounded-md transition-colors border border-transparent hover:border-[#008080]">
                           <div className="flex flex-col">
                             <span className="font-bold text-[#008080]">Interactive Map</span>
@@ -160,6 +168,12 @@ export function Header() {
                     <Link href="/trade-map" className="block">
                       <span className="font-bold text-[#008080]">Trade Volume Map</span>
                       <p className="text-xs text-gray-500 mt-1">Visualize global trade volumes</p>
+                    </Link>
+                  </li>
+                  <li>
+                    <Link href="/countries" className="block">
+                      <span className="font-bold text-[#008080]">Country Profiles</span>
+                      <p className="text-xs text-gray-500 mt-1">View country trade profiles</p>
                     </Link>
                   </li>
                   <li>

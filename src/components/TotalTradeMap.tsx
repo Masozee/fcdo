@@ -474,11 +474,7 @@ export function TotalTradeMap({ onRegionSelect, isBackground = false, focusCount
           tooltip.style('opacity', 0);
         })
         .on('click', (event, feature: CountryFeature) => {
-          const countryData = findCountryData(feature);
-          if (countryData) {
-            setSelectedCountry(countryData);
-            onRegionSelect?.(countryData.country);
-          }
+          handleCountryClick(feature);
         });
 
       // Log matching statistics after rendering all countries
@@ -573,10 +569,35 @@ export function TotalTradeMap({ onRegionSelect, isBackground = false, focusCount
       
       // Create tooltip content
       tooltip.html(`
-        <div class="font-semibold">${countryName}</div>
-        <div>Total Trade: ${formatValue(countryData.total_value)}</div>
-        <div>Imports: ${formatValue(countryData.import_value)}</div>
-        <div>Exports: ${formatValue(countryData.export_value)}</div>
+        <div class="tooltip" style="
+          background: rgba(255, 255, 255, 0.95);
+          border: 1px solid #ddd;
+          border-radius: 4px;
+          padding: 10px;
+          font-size: 14px;
+          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+          max-width: 280px;
+        ">
+          <h4 style="margin: 0 0 5px; font-weight: 600;">${countryName}</h4>
+          ${
+            countryData
+              ? `
+                <div style="margin-bottom: 5px;">
+                  <div><strong>Total Trade:</strong> ${formatValue(countryData.total_value)}</div>
+                  <div><strong>Imports:</strong> ${formatValue(countryData.import_value)}</div>
+                  <div><strong>Exports:</strong> ${formatValue(countryData.export_value)}</div>
+                </div>
+                <a href="/country/${countryData.country}" style="
+                  display: inline-block;
+                  color: #008080;
+                  margin-top: 5px;
+                  font-size: 13px;
+                  text-decoration: underline;
+                ">View full profile</a>
+              `
+              : `<div>No trade data available</div>`
+          }
+        </div>
       `)
       .style("left", `${event.pageX + 15}px`)
       .style("top", `${event.pageY - 28}px`)
@@ -589,6 +610,18 @@ export function TotalTradeMap({ onRegionSelect, isBackground = false, focusCount
       .style("left", `${event.pageX + 15}px`)
       .style("top", `${event.pageY - 28}px`)
       .style("opacity", 1);
+    }
+  }
+
+  function handleCountryClick(feature: CountryFeature) {
+    const countryData = findCountryData(feature);
+    if (countryData) {
+      if (onRegionSelect) {
+        onRegionSelect(countryData.country);
+      } else {
+        // Navigate to country detail page
+        window.location.href = `/country/${countryData.country}`;
+      }
     }
   }
 
