@@ -3,9 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "dev": "node server.js",
     "build": "next build",
-    "start": "next start",
+    "start": "node server.js",
     "lint": "next lint",
     "init-duckdb": "node scripts/init-duckdb.js"
   },
@@ -40,6 +40,7 @@
     "d3-scale": "^4.0.2",
     "dotenv": "^16.4.7",
     "duckdb": "^1.2.0",
+    "express": "^4.21.2",
     "framer-motion": "^12.4.10",
     "hono": "^4.7.5",
     "lucide-react": "^0.477.0",

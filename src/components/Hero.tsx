@@ -4,6 +4,7 @@ import React from 'react';
 import * as Dialog from '@radix-ui/react-dialog';
 import { TradeMap } from './TradeMap';
 import { motion } from 'framer-motion';
+import Link from 'next/link';
 
 export function Hero() {
   return (
@@ -52,9 +53,11 @@ export function Hero() {
             </div>
             
             <div className="flex flex-wrap gap-4">
+              <Link href="/strategicdependencyreport">
               <button className="px-6 py-3 bg-accent hover:bg-accent-dark text-white rounded-md transition-colors">
-                Explore Data
+                Download the Report
               </button>
+              </Link>
               <button className="px-6 py-3 bg-gray-100 hover:bg-gray-200 text-gray-900 rounded-md transition-colors dark:bg-gray-800 dark:hover:bg-gray-700 dark:text-white">
                 Learn More
               </button>

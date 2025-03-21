@@ -50,6 +50,9 @@ export function Header() {
             </div>
           </Link>
           
+          {/* Sitemap Link */}
+          
+          
           {/* Mobile menu button */}
           <button 
             className="md:hidden ml-auto text-gray-500 hover:text-accent transition-colors"
@@ -70,76 +73,40 @@ export function Header() {
               <NavigationMenu.List className="flex space-x-6 text-lg">
                 {/* About Us */}
                 <NavigationMenu.Item>
-                  <Link href="/about" className="text-gray-700 hover:text-accent transition-colors font-semibold">
+                  <span className="text-gray-400 font-semibold cursor-not-allowed">
                     About
-                  </Link>
+                  </span>
                 </NavigationMenu.Item>
                 
                 {/* Our Data */}
                 <NavigationMenu.Item>
-                  <NavigationMenu.Trigger className="group flex items-center text-gray-700 hover:text-accent transition-colors font-semibold">
+                  <span className="group flex items-center text-gray-400 font-semibold cursor-not-allowed">
                     <span>Our Data</span>
-                    <svg width="12" height="12" viewBox="0 0 12 12" xmlns="http://www.w3.org/2000/svg" className="ml-1 text-gray-500 group-hover:rotate-180 transition-transform duration-200">
+                    <svg width="12" height="12" viewBox="0 0 12 12" xmlns="http://www.w3.org/2000/svg" className="ml-1 text-gray-400">
                       <path d="M6 8L2 4H10L6 8Z" fill="currentColor" />
                     </svg>
-                  </NavigationMenu.Trigger>
-                  <NavigationMenu.Content className="absolute top-full left-0 mt-2 w-[350px] p-4 bg-white rounded-md shadow-lg border border-gray-200 z-50">
-                    <ul className="space-y-4">
-                      <li>
-                        <Link href="/data" className="block p-3 text-gray-700 hover:bg-gray-50 rounded-md transition-colors border border-transparent hover:border-[#008080]">
-                          <div className="flex flex-col">
-                            <span className="font-bold text-[#008080]">Data Table</span>
-                            <span className="text-sm text-gray-500 mt-1">Explore and filter trade data with advanced sorting options</span>
-                          </div>
-                        </Link>
-                      </li>
-                      <li>
-                        <Link href="/trade-map" className="block p-3 text-gray-700 hover:bg-gray-50 rounded-md transition-colors border border-transparent hover:border-[#008080]">
-                          <div className="flex flex-col">
-                            <span className="font-bold text-[#008080]">Trade Volume Map</span>
-                            <span className="text-sm text-gray-500 mt-1">Visualize global trade volumes on an interactive choropleth map</span>
-                          </div>
-                        </Link>
-                      </li>
-                      <li>
-                        <Link href="/countries" className="block p-3 text-gray-700 hover:bg-gray-50 rounded-md transition-colors border border-transparent hover:border-[#008080]">
-                          <div className="flex flex-col">
-                            <span className="font-bold text-[#008080]">Country Profiles</span>
-                            <span className="text-sm text-gray-500 mt-1">View detailed trade profiles and statistics for individual countries</span>
-                          </div>
-                        </Link>
-                      </li>
-                      <li>
-                        <Link href="/map-dashboard" className="block p-3 text-gray-700 hover:bg-gray-50 rounded-md transition-colors border border-transparent hover:border-[#008080]">
-                          <div className="flex flex-col">
-                            <span className="font-bold text-[#008080]">Interactive Map</span>
-                            <span className="text-sm text-gray-500 mt-1">Visualize global trade flows and patterns with interactive maps</span>
-                          </div>
-                        </Link>
-                      </li>
-                    </ul>
-                  </NavigationMenu.Content>
+                  </span>
                 </NavigationMenu.Item>
                 
                 {/* Publications */}
                 <NavigationMenu.Item>
-                  <Link href="/publications" className="text-gray-700 hover:text-accent transition-colors font-semibold">
+                  <span className="text-gray-400 font-semibold cursor-not-allowed">
                     Publications
-                  </Link>
+                  </span>
                 </NavigationMenu.Item>
                 
                 {/* Teams */}
                 <NavigationMenu.Item>
-                  <Link href="/teams" className="text-gray-700 hover:text-accent transition-colors font-semibold">
+                  <span className="text-gray-400 font-semibold cursor-not-allowed">
                     Teams
-                  </Link>
+                  </span>
                 </NavigationMenu.Item>
                 
                 {/* Contact Us */}
                 <NavigationMenu.Item>
-                  <Link href="/contact" className="text-gray-700 hover:text-accent transition-colors font-semibold">
+                  <span className="text-gray-400 font-semibold cursor-not-allowed">
                     Contact Us
-                  </Link>
+                  </span>
                 </NavigationMenu.Item>
               </NavigationMenu.List>
               
@@ -152,47 +119,49 @@ export function Header() {
         <div className={`fixed md:hidden top-[80px] left-0 right-0 bg-white border-b border-gray-200 transition-all duration-200 transform ${isMobileMenuOpen ? 'translate-y-0 opacity-100' : '-translate-y-full opacity-0'}`}>
           <div className="container mx-auto px-4 py-4">
             <nav className="flex flex-col space-y-4">
-              <Link href="/about" className="text-gray-700 hover:text-accent font-semibold py-2 border-b border-gray-100">
+              
+              
+              <span className="text-gray-400 font-semibold py-2 border-b border-gray-100 cursor-not-allowed">
                 About
-              </Link>
+              </span>
               <div className="py-2 border-b border-gray-100">
-                <div className="font-semibold text-gray-900 mb-2">Our Data</div>
+                <div className="font-semibold text-gray-400 mb-2 cursor-not-allowed">Our Data</div>
                 <ul className="ml-4 space-y-3">
                   <li>
-                    <Link href="/data" className="block">
-                      <span className="font-bold text-[#008080]">Data Table</span>
-                      <p className="text-xs text-gray-500 mt-1">Explore and filter trade data</p>
-                    </Link>
+                    <span className="block cursor-not-allowed">
+                      <span className="font-bold text-gray-400">Data Table</span>
+                      <p className="text-xs text-gray-400 mt-1">Explore and filter trade data</p>
+                    </span>
                   </li>
                   <li>
-                    <Link href="/trade-map" className="block">
-                      <span className="font-bold text-[#008080]">Trade Volume Map</span>
-                      <p className="text-xs text-gray-500 mt-1">Visualize global trade volumes</p>
-                    </Link>
+                    <span className="block cursor-not-allowed">
+                      <span className="font-bold text-gray-400">Trade Volume Map</span>
+                      <p className="text-xs text-gray-400 mt-1">Visualize global trade volumes</p>
+                    </span>
                   </li>
                   <li>
-                    <Link href="/countries" className="block">
-                      <span className="font-bold text-[#008080]">Country Profiles</span>
-                      <p className="text-xs text-gray-500 mt-1">View country trade profiles</p>
-                    </Link>
+                    <span className="block cursor-not-allowed">
+                      <span className="font-bold text-gray-400">Country Profiles</span>
+                      <p className="text-xs text-gray-400 mt-1">View country trade profiles</p>
+                    </span>
                   </li>
                   <li>
-                    <Link href="/map-dashboard" className="block">
-                      <span className="font-bold text-[#008080]">Interactive Map</span>
-                      <p className="text-xs text-gray-500 mt-1">Visualize global trade patterns</p>
-                    </Link>
+                    <span className="block cursor-not-allowed">
+                      <span className="font-bold text-gray-400">Interactive Map</span>
+                      <p className="text-xs text-gray-400 mt-1">Visualize global trade patterns</p>
+                    </span>
                   </li>
                 </ul>
               </div>
-              <Link href="/publications" className="text-gray-700 hover:text-accent font-semibold py-2 border-b border-gray-100">
+              <span className="text-gray-400 font-semibold py-2 border-b border-gray-100 cursor-not-allowed">
                 Publications
-              </Link>
-              <Link href="/teams" className="text-gray-700 hover:text-accent font-semibold py-2 border-b border-gray-100">
+              </span>
+              <span className="text-gray-400 font-semibold py-2 border-b border-gray-100 cursor-not-allowed">
                 Teams
-              </Link>
-              <Link href="/contact" className="text-gray-700 hover:text-accent font-semibold py-2 border-b border-gray-100">
+              </span>
+              <span className="text-gray-400 font-semibold py-2 border-b border-gray-100 cursor-not-allowed">
                 Contact Us
-              </Link>
+              </span>
             </nav>
           </div>
         </div>

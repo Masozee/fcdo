@@ -6,9 +6,9 @@ import Image from 'next/image';
 
 export function ReversedWebsiteNarrative() {
   return (
-    <section className="relative py-20 bg-white dark:bg-gray-900 overflow-hidden">
+    <section className="relative py-28 bg-white dark:bg-gray-900 overflow-hidden">
       {/* Map image on the right overlapping the border */}
-      <div className="absolute right-0 top-1/2 transform -translate-y-1/2 translate-x-[5%] max-h-[900px] w-auto h-full max-w-[150vw] z-10 py-10">
+      <div className="absolute right-0 top-1/2 transform -translate-y-1/2 translate-x-[5%] max-h-[700px] w-auto h-full max-w-[150vw] z-10 py-10">
         <motion.div
           initial={{ opacity: 0, x: 50 }}
           whileInView={{ opacity: 1, x: 0 }}
@@ -35,7 +35,7 @@ export function ReversedWebsiteNarrative() {
       </div>
       
       <div className="container mx-auto px-4">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-16 items-center max-w-6xl mx-auto">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-16 items-center max-w-6xl mx-auto min-h-[600px]">
           {/* Left column - Text content */}
           <motion.div
             initial={{ opacity: 0, x: -50 }}
