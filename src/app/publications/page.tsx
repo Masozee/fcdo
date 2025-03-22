@@ -20,7 +20,7 @@ const publicationsData = [
     date: "March 2025",
     category: "Research Report",
     slug: "indonesias-strategic-dependencies",
-    authors: ["Dr. Sarah Chen", "Prof. Michael Johnson"],
+    authors: ["Lina A. Alexandra", "Andrew W. Mantong", "Dandy Rafitrandi", "M. Habib A. Dzakwan", "M. Waffaa Kharisma", "Pieter A. Pandie", "Anastasia A. Widyautami", "Balthazaar A. Ardhillah"],
     tags: ["Indonesia", "Strategic Trade", "Global Markets"],
     downloadUrl: "http://localhost:3000/strategicdependencyreport"
   }
@@ -299,6 +299,7 @@ export default function PublicationsPage() {
                         alt={publication.title}
                         className="w-full h-full object-cover"
                       />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent" />
                     </div>
                     <CardContent className="flex-1 p-6 flex flex-col pt-6">
                       <div className="mb-3 flex items-center">
