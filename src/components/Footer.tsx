@@ -9,12 +9,12 @@ export function Footer() {
   
   return (
     <footer className="root-footer bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-800">
-      <div className="container mx-auto px-6 py-8">
+      <div className="max-w-7xl mx-auto px-6 sm:px-8 py-8">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           <div className="col-span-1 md:col-span-1">
             <h3 className="text-lg font-semibold mb-4 text-gray-900 dark:text-white">About Us</h3>
             <p className="text-gray-600 dark:text-gray-400 mb-4">
-              Trade Data Explorer provides comprehensive analysis and visualization of global trade data.
+              CSIS Indonesia is a leading think tank conducting policy research on strategic dependencies and global trade dynamics to enhance economic resilience.
             </p>
           </div>
           
@@ -22,14 +22,14 @@ export function Footer() {
             <h3 className="text-lg font-semibold mb-4 text-gray-900 dark:text-white">Quick Links</h3>
             <ul className="space-y-2">
               <li>
-                <Link href="/about" className="text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400">
-                  About Us
-                </Link>
+                <span className="text-gray-500 dark:text-gray-500 cursor-not-allowed">
+                  Research Programs
+                </span>
               </li>
               <li>
-                <Link href="/data" className="text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400">
-                  Data Tables
-                </Link>
+                <span className="text-gray-500 dark:text-gray-500 cursor-not-allowed">
+                  Policy Briefs
+                </span>
               </li>
               <li>
                 <Link href="/trade-map" className="text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400">
@@ -37,9 +37,9 @@ export function Footer() {
                 </Link>
               </li>
               <li>
-                <Link href="/db-map" className="text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400">
-                  Interactive Maps
-                </Link>
+                <span className="text-gray-500 dark:text-gray-500 cursor-not-allowed">
+                  Events
+                </span>
               </li>
               <li>
                 <Link href="/publications" className="text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400">
@@ -47,9 +47,9 @@ export function Footer() {
                 </Link>
               </li>
               <li>
-                <Link href="/teams" className="text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400">
-                  Our Team
-                </Link>
+                <span className="text-gray-500 dark:text-gray-500 cursor-not-allowed">
+                  Partnerships
+                </span>
               </li>
             </ul>
           </div>
@@ -58,24 +58,24 @@ export function Footer() {
             <h3 className="text-lg font-semibold mb-4 text-gray-900 dark:text-white">Resources</h3>
             <ul className="space-y-2">
               <li>
-                <Link href="#" className="text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400">
-                  API Documentation
-                </Link>
+                <span className="text-gray-500 dark:text-gray-500 cursor-not-allowed">
+                  Working Papers
+                </span>
               </li>
               <li>
-                <Link href="#" className="text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400">
-                  User Guides
-                </Link>
+                <span className="text-gray-500 dark:text-gray-500 cursor-not-allowed">
+                  Research Methodology
+                </span>
               </li>
               <li>
-                <Link href="#" className="text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400">
-                  FAQ
-                </Link>
+                <span className="text-gray-500 dark:text-gray-500 cursor-not-allowed">
+                  Data Archive
+                </span>
               </li>
               <li>
-                <Link href="#" className="text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400">
-                  Support
-                </Link>
+                <span className="text-gray-500 dark:text-gray-500 cursor-not-allowed">
+                  Press Releases
+                </span>
               </li>
             </ul>
           </div>
@@ -83,10 +83,10 @@ export function Footer() {
           <div className="col-span-1 md:col-span-1">
             <h3 className="text-lg font-semibold mb-4 text-gray-900 dark:text-white">Contact Us</h3>
             <p className="text-gray-600 dark:text-gray-400 mb-2">
-              Email: info@tradedataexplorer.com
+              Email: international.relations@csis.or.id
             </p>
             <p className="text-gray-600 dark:text-gray-400 mb-2">
-              Phone: +1 (555) 123-4567
+              Phone: (021) 3865532
             </p>
             <div className="flex space-x-4 mt-4">
               <a href="#" className="text-gray-500 hover:text-blue-600 dark:text-gray-400 dark:hover:text-blue-400">
@@ -112,18 +112,18 @@ export function Footer() {
         
         <div className="flex flex-col md:flex-row justify-between items-center">
           <p className="text-sm text-gray-600 dark:text-gray-400">
-            © {currentYear} Trade Data Explorer. All rights reserved.
+            © {currentYear} CSIS Indonesia. All rights reserved.
           </p>
           <div className="flex space-x-6 mt-4 md:mt-0">
-            <Link href="#" className="text-sm text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400">
+            <span className="text-sm text-gray-500 dark:text-gray-500 cursor-not-allowed">
               Privacy Policy
-            </Link>
-            <Link href="#" className="text-sm text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400">
+            </span>
+            <span className="text-sm text-gray-500 dark:text-gray-500 cursor-not-allowed">
               Terms of Service
-            </Link>
-            <Link href="#" className="text-sm text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400">
+            </span>
+            <span className="text-sm text-gray-500 dark:text-gray-500 cursor-not-allowed">
               Cookie Policy
-            </Link>
+            </span>
           </div>
         </div>
       </div>

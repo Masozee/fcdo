@@ -1,141 +1,93 @@
 "use client"
 
-import React from 'react';
-import { motion } from 'framer-motion';
+import { Card, CardContent, CardFooter } from "@/components/ui/card"
+import Link from "next/link"
+
+interface Publication {
+  id: number;
+  title: string;
+  abstract: string;
+  date: string;
+  image?: string;
+  slug: string;
+  authors: string[];
+  tags: string[];
+  downloadUrl: string;
+}
+
+const publications: Publication[] = [
+  {
+    id: 1,
+    title: "Indonesia's Strategic Dependencies",
+    abstract: "A comprehensive analysis of international trade flows and emerging trends in global markets. This report examines Indonesia's trade dependencies, analyzing key import and export relationships, strategic resources, and vulnerability to global supply chain disruptions.",
+    date: "March 2025",
+    image: "/report1.jpg",
+    slug: "indonesias-strategic-dependencies",
+    authors: ["Dr. Sarah Chen", "Prof. Michael Johnson"],
+    tags: ["Indonesia", "Strategic Trade", "Global Markets"],
+    downloadUrl: "http://localhost:3000/strategicdependencyreport"
+  }
+]
 
 export function Publications() {
-  const publications = [
-    {
-      id: 1,
-      title: "Global Trade Patterns in 2023",
-      description: "A comprehensive analysis of international trade flows and emerging trends in global markets.",
-      imageUrl: "/graphicook-studio-apf021dql2E-unsplash.png",
-      date: "March 2023",
-      category: "Market Analysis"
-    },
-    {
-      id: 2,
-      title: "Supply Chain Resilience Report",
-      description: "Examining how countries and companies are rebuilding supply chains in the post-pandemic economy.",
-      imageUrl: "getty-images-J6FmeeQ5SHc-unsplash.png",
-      date: "January 2023",
-      category: "Industry Report"
-    },
-    {
-      id: 3,
-      title: "Emerging Markets Trade Outlook",
-      description: "Future forecast for trade relationships between developed economies and emerging markets.",
-      imageUrl: "/getty-images-id1c7BO1uC8-unsplash.png",
-      date: "February 2023",
-      category: "Economic Forecast"
-    }
-  ];
-
-  const container = {
-    hidden: { opacity: 0 },
-    show: {
-      opacity: 1,
-      transition: {
-        staggerChildren: 0.2
-      }
-    }
-  };
-
-  const item = {
-    hidden: { opacity: 0, y: 20 },
-    show: { 
-      opacity: 1, 
-      y: 0,
-      transition: {
-        duration: 0.5
-      }
-    }
-  };
-
   return (
-    <section className="py-20 bg-gray-50 dark:bg-gray-800">
-      <div className="container mx-auto px-4">
-        <div className="max-w-3xl mx-auto text-center mb-16">
-          <motion.h2 
-            className="text-3xl font-bold mb-4 text-gray-900 dark:text-white"
-            initial={{ opacity: 0, y: -20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
-            viewport={{ once: true }}
-          >
-            Latest Publications
-          </motion.h2>
-          <motion.p 
-            className="text-xl text-gray-600 dark:text-gray-300"
-            initial={{ opacity: 0, y: -20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.2 }}
-            viewport={{ once: true }}
-          >
-            In-depth analysis and insights from our trade data experts
-          </motion.p>
+    <div className="px-4 py-6 md:px-6 lg:py-12 bg-gray-50 dark:bg-gray-900">
+      <div className="container mx-auto">
+        <div className="flex flex-col gap-2 mb-8">
+          <h2 className="text-3xl font-bold tracking-tight">Publications</h2>
+          <p className="text-gray-500 dark:text-gray-400">
+            Latest research papers and reports on global trade and economics
+          </p>
         </div>
-
-        <motion.div 
-          className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto"
-          variants={container}
-          initial="hidden"
-          whileInView="show"
-          viewport={{ once: true }}
-        >
-          {publications.map((publication) => (
-            <motion.div 
-              key={publication.id}
-              className="bg-gray-50 dark:bg-gray-800 rounded-lg overflow-hidden shadow-md"
-              variants={item}
-              whileHover={{ 
-                scale: 1.03,
-                transition: { duration: 0.2 }
-              }}
-            >
-              <img
-                src={publication.imageUrl}
-                alt={publication.title}
-                className="w-full h-48 object-cover"
-              />
-              <div className="p-6">
-                <div className="flex justify-between items-center mb-3">
-                  <span className="text-sm font-medium text-blue-600 dark:text-blue-400">{publication.category}</span>
-                  <span className="text-sm text-gray-500 dark:text-gray-400">{publication.date}</span>
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+          {publications.map(publication => (
+            <Card key={publication.id} className="group overflow-hidden flex flex-col border-0 shadow-none">
+              <div className="relative">
+                <div className="aspect-[16/9] overflow-hidden">
+                  <img
+                    src={publication.image || "/placeholder.jpg"}
+                    alt={publication.title}
+                    className="object-cover w-full h-full transition-transform duration-300 group-hover:scale-105"
+                    width={400}
+                    height={225}
+                  />
                 </div>
-                <h3 className="font-bold text-lg mb-2 text-gray-900 dark:text-white">{publication.title}</h3>
-                <p className="text-gray-600 dark:text-gray-300 mb-4">
-                  {publication.description}
+                <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
+              </div>
+              <CardContent className="grid gap-4 flex-1 pt-6">
+                <div>
+                  <h3 className="text-xl font-bold leading-tight text-gray-900 dark:text-white">
+                    {publication.title}
+                  </h3>
+                  <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{publication.date}</p>
+                </div>
+                <p className="text-gray-500 dark:text-gray-400 line-clamp-3">
+                  {publication.abstract}
                 </p>
-                <a
-                  href="#"
-                  className="text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-medium inline-flex items-center"
+              </CardContent>
+              <CardFooter className="flex justify-between items-center pt-4 border-0">
+                <p className="text-sm text-gray-500 dark:text-gray-400">
+                  {publication.authors[0]}{publication.authors.length > 1 ? ' et al.' : ''}
+                </p>
+                <Link 
+                  href={`/publications/${publication.slug}`}
+                  className="inline-flex h-9 items-center justify-center rounded-md bg-transparent hover:bg-gray-100 px-4 py-2 text-sm font-medium text-gray-900 shadow-none hover:text-gray-900 dark:text-gray-100 dark:hover:bg-gray-800 dark:hover:text-gray-100"
                 >
                   Read Publication
-                  <svg className="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
-                  </svg>
-                </a>
-              </div>
-            </motion.div>
+                </Link>
+              </CardFooter>
+            </Card>
           ))}
-        </motion.div>
-
-        <motion.div 
-          className="text-center mt-12"
-          initial={{ opacity: 0 }}
-          whileInView={{ opacity: 1 }}
-          transition={{ duration: 0.5, delay: 0.5 }}
-          viewport={{ once: true }}
-        >
-          <a
-            href="#"
-            className="inline-flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 md:py-4 md:text-lg md:px-8 transition-colors"
+        </div>
+        <div className="mt-12 text-center">
+          <Link 
+            href="/publications" 
+            className="inline-flex h-10 items-center justify-center rounded-md border-0 bg-transparent px-8 py-2 text-sm font-medium shadow-none hover:bg-gray-100 hover:text-gray-900 dark:hover:bg-gray-800 dark:hover:text-gray-50"
           >
             View All Publications
-          </a>
-        </motion.div>
+          </Link>
+        </div>
       </div>
-    </section>
-  );
+    </div>
+  )
 } 

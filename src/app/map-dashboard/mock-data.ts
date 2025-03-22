@@ -1,29 +1,36 @@
-import { GlobalHighlight, RegionData, TradeRelationship, TradeStatistic } from "./types";
+import { GlobalHighlight, RegionData, TradeRelationship, TradeStatistic, ProductCategory, TradingPartner, TradeRelationships, TradeStatItem, TradeStatGroup } from "./types";
 
 export const mockGlobalHighlights: GlobalHighlight[] = [
   {
     title: "Global Trade Volume",
-    value: "$24.3 trillion",
+    value: 24.3,
     change: 5.2,
-    description: "Total global trade volume for goods and services"
+    trend: 5.2,
+    description: "Total global trade volume for goods and services",
+    isTrillion: true
   },
   {
     title: "Leading Exporter",
     value: "China",
     change: 3.1,
+    trend: 3.1,
     description: "China remains the world's leading exporter with $3.59 trillion"
   },
   {
-    title: "Fastest Growing Region",
-    value: "Southeast Asia",
+    title: "Trade Growth",
+    value: 7.8,
     change: 7.8,
-    description: "Southeast Asian countries show strongest trade growth"
+    trend: 7.8,
+    description: "Annual growth in global trade volume",
+    isPercentage: true
   },
   {
     title: "Digital Trade",
-    value: "$3.8 trillion",
+    value: 3.8,
     change: 12.4,
-    description: "E-commerce and digital services trade volume"
+    trend: 12.4,
+    description: "E-commerce and digital services trade volume",
+    isTrillion: true
   }
 ];
 
@@ -47,7 +54,19 @@ export const mockRegionData: Record<string, RegionData> = {
       { name: "Vehicles", value: 249, percent: 12.5 },
       { name: "Pharmaceuticals", value: 183, percent: 9.2 },
       { name: "Mineral Fuels", value: 162, percent: 8.1 }
-    ]
+    ],
+    economyStats: [
+      { name: "GDP Growth", value: 2.8, isPercentage: true },
+      { name: "Inflation Rate", value: 3.2, isPercentage: true },
+      { name: "Unemployment", value: 4.1, isPercentage: true },
+      { name: "FDI Inflows", value: 382 },
+      { name: "Infrastructure Spending", value: 429 }
+    ],
+    tradeBalance: {
+      exports: 2850,
+      imports: 3120,
+      balance: -270
+    }
   },
   "Europe": {
     name: "Europe",
@@ -68,7 +87,19 @@ export const mockRegionData: Record<string, RegionData> = {
       { name: "Vehicles", value: 318, percent: 13.8 },
       { name: "Electronics", value: 276, percent: 12.0 },
       { name: "Chemical Products", value: 189, percent: 8.2 }
-    ]
+    ],
+    economyStats: [
+      { name: "GDP Growth", value: 1.9, isPercentage: true },
+      { name: "Inflation Rate", value: 2.4, isPercentage: true },
+      { name: "Unemployment", value: 6.7, isPercentage: true },
+      { name: "FDI Inflows", value: 412 },
+      { name: "Infrastructure Spending", value: 387 }
+    ],
+    tradeBalance: {
+      exports: 3240,
+      imports: 3120,
+      balance: 120
+    }
   },
   "Asia": {
     name: "Asia",
@@ -89,47 +120,65 @@ export const mockRegionData: Record<string, RegionData> = {
       { name: "Machinery", value: 423, percent: 12.2 },
       { name: "Vehicles", value: 387, percent: 11.2 },
       { name: "Plastics", value: 276, percent: 8.0 }
-    ]
+    ],
+    economyStats: [
+      { name: "GDP Growth", value: 4.3, isPercentage: true },
+      { name: "Inflation Rate", value: 3.8, isPercentage: true },
+      { name: "Unemployment", value: 3.9, isPercentage: true },
+      { name: "FDI Inflows", value: 612 },
+      { name: "Infrastructure Spending", value: 748 }
+    ],
+    tradeBalance: {
+      exports: 4320,
+      imports: 3970,
+      balance: 350
+    }
   }
 };
 
-export const mockTradeRelationships: TradeRelationship[] = [
-  {
-    source: "United States",
-    target: "China",
-    value: 718,
-    products: ["Electronics", "Machinery", "Furniture"]
-  },
-  {
-    source: "United States",
-    target: "Mexico",
-    value: 582,
-    products: ["Vehicles", "Machinery", "Electronics"]
-  },
-  {
-    source: "Germany",
-    target: "United States",
-    value: 387,
-    products: ["Vehicles", "Machinery", "Pharmaceuticals"]
-  },
-  {
-    source: "Japan",
-    target: "China",
-    value: 412,
-    products: ["Electronics", "Machinery", "Vehicles"]
-  },
-  {
-    source: "China",
-    target: "European Union",
-    value: 892,
-    products: ["Electronics", "Textiles", "Machinery"]
-  }
-];
+export const mockTradeRelationships: TradeRelationships = {
+  productCategories: [
+    { name: "Electronics", value: 842, percentage: 24.3, color: "#3b82f6" },
+    { name: "Machinery", value: 723, percentage: 20.9, color: "#10b981" },
+    { name: "Vehicles", value: 586, percentage: 16.9, color: "#f59e0b" },
+    { name: "Pharmaceuticals", value: 412, percentage: 11.9, color: "#8b5cf6" },
+    { name: "Textiles", value: 328, percentage: 9.5, color: "#ec4899" },
+    { name: "Chemicals", value: 286, percentage: 8.3, color: "#ef4444" },
+    { name: "Plastics", value: 189, percentage: 5.5, color: "#6366f1" }
+  ],
+  tradingPartners: [
+    { name: "China", value: 1284, percentage: 29.1 },
+    { name: "United States", value: 982, percentage: 22.2 },
+    { name: "Germany", value: 743, percentage: 16.8 },
+    { name: "Japan", value: 612, percentage: 13.9 },
+    { name: "United Kingdom", value: 487, percentage: 11.0 },
+    { name: "France", value: 376, percentage: 8.5 }
+  ]
+};
 
-export const mockTradeStatistics: TradeStatistic[] = [
-  { year: 2023, imports: 3.1, exports: 2.9, balance: -0.2 },
-  { year: 2022, imports: 2.9, exports: 2.7, balance: -0.2 },
-  { year: 2021, imports: 2.6, exports: 2.5, balance: -0.1 },
-  { year: 2020, imports: 2.2, exports: 2.1, balance: -0.1 },
-  { year: 2019, imports: 2.4, exports: 2.3, balance: -0.1 }
+export const mockTradeStatistics: TradeStatGroup[] = [
+  {
+    title: "Global Market Share",
+    description: "Trading volume by region as percentage of global trade",
+    data: [
+      { name: "Asia Pacific", value: 38.7, isPercentage: true },
+      { name: "North America", value: 23.5, isPercentage: true },
+      { name: "Europe", value: 21.9, isPercentage: true },
+      { name: "Middle East", value: 8.2, isPercentage: true },
+      { name: "Africa", value: 4.8, isPercentage: true },
+      { name: "South America", value: 2.9, isPercentage: true }
+    ]
+  },
+  {
+    title: "Trade Balance",
+    description: "Imports vs exports by major trading regions",
+    data: [
+      { name: "Asia Pacific", value: 350 },
+      { name: "North America", value: -270 },
+      { name: "Europe", value: 120 },
+      { name: "Middle East", value: 210 },
+      { name: "Africa", value: -180 },
+      { name: "South America", value: 90 }
+    ]
+  }
 ]; 

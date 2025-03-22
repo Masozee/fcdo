@@ -1,339 +1,348 @@
 "use client"
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import Link from 'next/link';
+import { Card, CardContent } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Separator } from '@/components/ui/separator';
 import * as Checkbox from '@radix-ui/react-checkbox';
-import * as RadioGroup from '@radix-ui/react-radio-group';
-import * as Separator from '@radix-ui/react-separator';
-import * as ScrollArea from '@radix-ui/react-scroll-area';
-import { CheckIcon } from '@radix-ui/react-icons';
+import { CheckIcon, Cross2Icon, MagnifyingGlassIcon } from '@radix-ui/react-icons';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
 
-// Publication data
-const publications = [
+// This would typically come from an API or database
+const publicationsData = [
   {
     id: 1,
-    title: 'Global Trade Patterns in the Post-Pandemic Era',
-    author: 'Dr. Sarah Johnson',
-    date: '2023-05-15',
-    type: 'Research Paper',
-    category: 'Economic Analysis',
-    abstract: 'This paper examines how global trade patterns have evolved following the COVID-19 pandemic, with a focus on supply chain resilience and regional trade agreements.',
-    tags: ['COVID-19', 'Supply Chain', 'Trade Agreements'],
-  },
-  {
-    id: 2,
-    title: 'Emerging Markets Trade Index: Q2 2023',
-    author: 'Amara Okafor',
-    date: '2023-07-10',
-    type: 'Report',
-    category: 'Market Analysis',
-    abstract: 'Our quarterly analysis of trade flows in emerging markets, highlighting opportunities and challenges for businesses and investors.',
-    tags: ['Emerging Markets', 'Index', 'Quarterly Report'],
-  },
-  {
-    id: 3,
-    title: 'The Impact of Digital Trade on Global Commerce',
-    author: 'Michael Chen',
-    date: '2023-04-22',
-    type: 'White Paper',
-    category: 'Digital Economy',
-    abstract: 'This white paper explores how digital technologies are transforming international trade, from e-commerce to digital services and data flows.',
-    tags: ['Digital Trade', 'E-commerce', 'Technology'],
-  },
-  {
-    id: 4,
-    title: 'Agricultural Trade and Food Security',
-    author: 'Carlos Rodriguez',
-    date: '2023-03-08',
-    type: 'Research Paper',
-    category: 'Sector Analysis',
-    abstract: 'An examination of the relationship between agricultural trade policies and food security, with case studies from Latin America and Africa.',
-    tags: ['Agriculture', 'Food Security', 'Policy'],
-  },
-  {
-    id: 5,
-    title: 'Trade Data Visualization Best Practices',
-    author: 'Emma Wilson',
-    date: '2023-06-30',
-    type: 'Guide',
-    category: 'Data Visualization',
-    abstract: 'A comprehensive guide to effectively visualizing trade data for analysis, reporting, and decision-making.',
-    tags: ['Data Visualization', 'Best Practices', 'Analytics'],
-  },
-  {
-    id: 6,
-    title: 'Sustainable Trade: Environmental Impacts and Policy Responses',
-    author: 'Dr. Raj Patel',
-    date: '2023-02-15',
-    type: 'Research Paper',
-    category: 'Sustainability',
-    abstract: 'This research examines the environmental footprint of international trade and evaluates policy measures aimed at promoting sustainability.',
-    tags: ['Sustainability', 'Environment', 'Policy'],
-  },
-  {
-    id: 7,
-    title: 'Trade Finance in Developing Economies',
-    author: 'Dr. Sarah Johnson',
-    date: '2023-01-20',
-    type: 'Report',
-    category: 'Economic Analysis',
-    abstract: 'An analysis of trade finance gaps in developing economies and innovative solutions to address these challenges.',
-    tags: ['Trade Finance', 'Development', 'Financial Inclusion'],
-  },
-  {
-    id: 8,
-    title: 'The Role of AI in Trade Analysis',
-    author: 'Michael Chen',
-    date: '2023-08-05',
-    type: 'White Paper',
-    category: 'Technology',
-    abstract: 'This paper explores how artificial intelligence is revolutionizing trade data analysis and forecasting.',
-    tags: ['AI', 'Machine Learning', 'Analytics'],
-  },
+    title: "Indonesia's Strategic Dependencies",
+    description: "A comprehensive analysis of international trade flows and emerging trends in global markets. This report examines Indonesia's trade dependencies, analyzing key import and export relationships, strategic resources, and vulnerability to global supply chain disruptions.",
+    imageUrl: "/report1.jpg",
+    date: "March 2025",
+    category: "Research Report",
+    slug: "indonesias-strategic-dependencies",
+    authors: ["Dr. Sarah Chen", "Prof. Michael Johnson"],
+    tags: ["Indonesia", "Strategic Trade", "Global Markets"],
+    downloadUrl: "http://localhost:3000/strategicdependencyreport"
+  }
 ];
 
-// Extract unique categories, types, and authors for filters
-const categories = [...new Set(publications.map(pub => pub.category))];
-const types = [...new Set(publications.map(pub => pub.type))];
-const authors = [...new Set(publications.map(pub => pub.author))];
-
 export default function PublicationsPage() {
-  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
-  const [selectedType, setSelectedType] = useState<string>('');
-  const [selectedAuthor, setSelectedAuthor] = useState<string>('');
+  // Get unique categories, tags, and authors from publication data
+  const allCategories = [...new Set(publicationsData.map(pub => pub.category))];
+  const allTags = [...new Set(publicationsData.flatMap(pub => pub.tags))];
+  const allAuthors = [...new Set(publicationsData.flatMap(pub => pub.authors))];
+  
+  // Filter states
   const [searchQuery, setSearchQuery] = useState('');
+  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
+  const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [selectedAuthors, setSelectedAuthors] = useState<string[]>([]);
+  const [filteredPublications, setFilteredPublications] = useState(publicationsData);
   
-  // Filter publications based on selected filters
-  const filteredPublications = publications.filter(pub => {
-    // Filter by category
-    if (selectedCategories.length > 0 && !selectedCategories.includes(pub.category)) {
-      return false;
-    }
+  // Apply filters when any filter state changes
+  useEffect(() => {
+    const filtered = publicationsData.filter(publication => {
+      // Search query filter
+      if (searchQuery) {
+        const query = searchQuery.toLowerCase();
+        const matchesSearch = 
+          publication.title.toLowerCase().includes(query) ||
+          publication.description.toLowerCase().includes(query) ||
+          publication.tags.some(tag => tag.toLowerCase().includes(query)) ||
+          publication.authors.some(author => author.toLowerCase().includes(query));
+          
+        if (!matchesSearch) return false;
+      }
+      
+      // Category filter
+      if (selectedCategories.length > 0 && !selectedCategories.includes(publication.category)) {
+        return false;
+      }
+      
+      // Tags filter
+      if (selectedTags.length > 0 && !publication.tags.some(tag => selectedTags.includes(tag))) {
+        return false;
+      }
+      
+      // Authors filter
+      if (selectedAuthors.length > 0 && !publication.authors.some(author => selectedAuthors.includes(author))) {
+        return false;
+      }
+      
+      return true;
+    });
     
-    // Filter by type
-    if (selectedType && pub.type !== selectedType) {
-      return false;
-    }
-    
-    // Filter by author
-    if (selectedAuthor && pub.author !== selectedAuthor) {
-      return false;
-    }
-    
-    // Filter by search query
-    if (searchQuery) {
-      const query = searchQuery.toLowerCase();
-      return (
-        pub.title.toLowerCase().includes(query) ||
-        pub.abstract.toLowerCase().includes(query) ||
-        pub.tags.some(tag => tag.toLowerCase().includes(query))
-      );
-    }
-    
-    return true;
-  });
+    setFilteredPublications(filtered);
+  }, [searchQuery, selectedCategories, selectedTags, selectedAuthors]);
   
-  // Handle category selection
+  // Toggle filter selections
   const toggleCategory = (category: string) => {
     setSelectedCategories(prev => 
-      prev.includes(category)
-        ? prev.filter(c => c !== category)
+      prev.includes(category) 
+        ? prev.filter(c => c !== category) 
         : [...prev, category]
+    );
+  };
+  
+  const toggleTag = (tag: string) => {
+    setSelectedTags(prev => 
+      prev.includes(tag) 
+        ? prev.filter(t => t !== tag) 
+        : [...prev, tag]
+    );
+  };
+  
+  const toggleAuthor = (author: string) => {
+    setSelectedAuthors(prev => 
+      prev.includes(author) 
+        ? prev.filter(a => a !== author) 
+        : [...prev, author]
     );
   };
   
   // Clear all filters
   const clearFilters = () => {
-    setSelectedCategories([]);
-    setSelectedType('');
-    setSelectedAuthor('');
     setSearchQuery('');
+    setSelectedCategories([]);
+    setSelectedTags([]);
+    setSelectedAuthors([]);
   };
   
+  // Check if any filters are applied
+  const hasActiveFilters = searchQuery || selectedCategories.length > 0 || selectedTags.length > 0 || selectedAuthors.length > 0;
+  
   return (
-    <div className="container mx-auto px-6 py-12">
-      <h1 className="text-3xl font-bold mb-2 text-center text-gray-900 dark:text-white">Publications</h1>
-      <p className="text-center text-gray-600 dark:text-gray-400 mb-12 max-w-2xl mx-auto">
-        Explore our latest research papers, reports, and guides on global trade trends, market analysis, and policy developments.
-      </p>
+    <div className="container mx-auto px-4 py-12">
+      <div className="mb-10">
+        <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Publications</h1>
+        <p className="mt-2 text-gray-600 dark:text-gray-300">
+          Explore our research reports, policy briefs, and analysis on global trade and strategic dependencies.
+        </p>
+        <Separator className="my-6" />
+      </div>
       
       <div className="flex flex-col md:flex-row gap-8">
-        {/* Sidebar Filters */}
+        {/* Sidebar filters */}
         <div className="md:w-1/4">
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-100">Filters</h2>
-              <button 
-                onClick={clearFilters}
-                className="text-sm text-blue-600 dark:text-blue-400 hover:underline"
-              >
-                Clear All
-              </button>
-            </div>
-            
+          <div className="space-y-6">
             {/* Search */}
-            <div className="mb-6">
-              <label htmlFor="search" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Search
-              </label>
-              <input
-                type="text"
-                id="search"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search publications..."
-                className="w-full p-2 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-md text-gray-800 dark:text-gray-200"
-              />
+            <div>
+              <h3 className="text-sm font-semibold mb-3 text-gray-900 dark:text-white">Search</h3>
+              <div className="relative">
+                <MagnifyingGlassIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                <Input
+                  type="text"
+                  placeholder="Search publications..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-9 w-full"
+                />
+                {searchQuery && (
+                  <button 
+                    onClick={() => setSearchQuery('')}
+                    className="absolute right-3 top-1/2 transform -translate-y-1/2"
+                  >
+                    <Cross2Icon className="h-4 w-4 text-gray-400 hover:text-gray-600" />
+                  </button>
+                )}
+              </div>
             </div>
             
-            <Separator.Root className="h-px bg-gray-200 dark:bg-gray-700 my-4" />
+            <Separator />
             
             {/* Categories */}
-            <div className="mb-6">
-              <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">Categories</h3>
-              <ScrollArea.Root className="max-h-40 overflow-hidden">
-                <ScrollArea.Viewport className="max-h-40 w-full">
-                  <div className="space-y-2">
-                    {categories.map(category => (
-                      <div key={category} className="flex items-center">
-                        <Checkbox.Root
-                          id={`category-${category}`}
-                          checked={selectedCategories.includes(category)}
-                          onCheckedChange={() => toggleCategory(category)}
-                          className="h-4 w-4 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 mr-2 flex items-center justify-center"
-                        >
-                          <Checkbox.Indicator>
-                            <CheckIcon className="h-3 w-3 text-blue-600 dark:text-blue-400" />
-                          </Checkbox.Indicator>
-                        </Checkbox.Root>
-                        <label 
-                          htmlFor={`category-${category}`}
-                          className="text-sm text-gray-700 dark:text-gray-300"
-                        >
-                          {category}
-                        </label>
-                      </div>
-                    ))}
-                  </div>
-                </ScrollArea.Viewport>
-                <ScrollArea.Scrollbar orientation="vertical" className="w-2 bg-gray-100 dark:bg-gray-700 rounded-full">
-                  <ScrollArea.Thumb className="bg-gray-300 dark:bg-gray-600 rounded-full" />
-                </ScrollArea.Scrollbar>
-              </ScrollArea.Root>
-            </div>
-            
-            <Separator.Root className="h-px bg-gray-200 dark:bg-gray-700 my-4" />
-            
-            {/* Publication Types */}
-            <div className="mb-6">
-              <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">Publication Type</h3>
-              <RadioGroup.Root 
-                value={selectedType} 
-                onValueChange={setSelectedType}
-                className="space-y-2"
-              >
-                {types.map(type => (
-                  <div key={type} className="flex items-center">
-                    <RadioGroup.Item
-                      id={`type-${type}`}
-                      value={type}
-                      className="h-4 w-4 rounded-full border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 mr-2"
+            <div>
+              <div className="flex justify-between items-center mb-3">
+                <h3 className="text-sm font-semibold text-gray-900 dark:text-white">Categories</h3>
+                {selectedCategories.length > 0 && (
+                  <button 
+                    onClick={() => setSelectedCategories([])}
+                    className="text-xs text-blue-600 dark:text-blue-400 hover:underline"
+                  >
+                    Clear
+                  </button>
+                )}
+              </div>
+              <div className="space-y-2">
+                {allCategories.map(category => (
+                  <div key={category} className="flex items-center">
+                    <Checkbox.Root
+                      id={`category-${category}`}
+                      checked={selectedCategories.includes(category)}
+                      onCheckedChange={() => toggleCategory(category)}
+                      className="h-4 w-4 rounded flex items-center justify-center border border-gray-300 dark:border-gray-600 mr-2 data-[state=checked]:bg-blue-600 data-[state=checked]:border-blue-600"
                     >
-                      <RadioGroup.Indicator className="flex items-center justify-center w-full h-full relative after:content-[''] after:block after:w-2 after:h-2 after:rounded-full after:bg-blue-600 dark:after:bg-blue-400" />
-                    </RadioGroup.Item>
+                      <Checkbox.Indicator>
+                        <CheckIcon className="h-3 w-3 text-white" />
+                      </Checkbox.Indicator>
+                    </Checkbox.Root>
                     <label 
-                      htmlFor={`type-${type}`}
-                      className="text-sm text-gray-700 dark:text-gray-300"
+                      htmlFor={`category-${category}`}
+                      className="text-sm text-gray-700 dark:text-gray-300 select-none"
                     >
-                      {type}
+                      {category}
                     </label>
                   </div>
                 ))}
-              </RadioGroup.Root>
+              </div>
             </div>
             
-            <Separator.Root className="h-px bg-gray-200 dark:bg-gray-700 my-4" />
+            <Separator />
+            
+            {/* Tags */}
+            <div>
+              <div className="flex justify-between items-center mb-3">
+                <h3 className="text-sm font-semibold text-gray-900 dark:text-white">Tags</h3>
+                {selectedTags.length > 0 && (
+                  <button 
+                    onClick={() => setSelectedTags([])}
+                    className="text-xs text-blue-600 dark:text-blue-400 hover:underline"
+                  >
+                    Clear
+                  </button>
+                )}
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {allTags.map(tag => (
+                  <Badge 
+                    key={tag}
+                    variant={selectedTags.includes(tag) ? "default" : "outline"}
+                    className="cursor-pointer"
+                    onClick={() => toggleTag(tag)}
+                  >
+                    {tag}
+                  </Badge>
+                ))}
+              </div>
+            </div>
+            
+            <Separator />
             
             {/* Authors */}
             <div>
-              <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">Author</h3>
-              <select
-                value={selectedAuthor}
-                onChange={(e) => setSelectedAuthor(e.target.value)}
-                className="w-full p-2 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-md text-gray-800 dark:text-gray-200"
-              >
-                <option value="">All Authors</option>
-                {authors.map(author => (
-                  <option key={author} value={author}>{author}</option>
+              <div className="flex justify-between items-center mb-3">
+                <h3 className="text-sm font-semibold text-gray-900 dark:text-white">Authors</h3>
+                {selectedAuthors.length > 0 && (
+                  <button 
+                    onClick={() => setSelectedAuthors([])}
+                    className="text-xs text-blue-600 dark:text-blue-400 hover:underline"
+                  >
+                    Clear
+                  </button>
+                )}
+              </div>
+              <div className="space-y-2">
+                {allAuthors.map(author => (
+                  <div key={author} className="flex items-center">
+                    <Checkbox.Root
+                      id={`author-${author}`}
+                      checked={selectedAuthors.includes(author)}
+                      onCheckedChange={() => toggleAuthor(author)}
+                      className="h-4 w-4 rounded flex items-center justify-center border border-gray-300 dark:border-gray-600 mr-2 data-[state=checked]:bg-blue-600 data-[state=checked]:border-blue-600"
+                    >
+                      <Checkbox.Indicator>
+                        <CheckIcon className="h-3 w-3 text-white" />
+                      </Checkbox.Indicator>
+                    </Checkbox.Root>
+                    <label 
+                      htmlFor={`author-${author}`}
+                      className="text-sm text-gray-700 dark:text-gray-300 select-none"
+                    >
+                      {author}
+                    </label>
+                  </div>
                 ))}
-              </select>
+              </div>
             </div>
+            
+            {hasActiveFilters && (
+              <div className="pt-4">
+                <Button 
+                  variant="outline" 
+                  onClick={clearFilters} 
+                  className="w-full"
+                >
+                  Clear All Filters
+                </Button>
+              </div>
+            )}
           </div>
         </div>
         
-        {/* Publications Grid */}
+        {/* Publications grid */}
         <div className="md:w-3/4">
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6 mb-6">
-            <div className="flex justify-between items-center">
-              <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-100">
-                {filteredPublications.length} {filteredPublications.length === 1 ? 'Publication' : 'Publications'}
-              </h2>
-              <div className="text-sm text-gray-600 dark:text-gray-400">
-                {selectedCategories.length > 0 || selectedType || selectedAuthor || searchQuery
-                  ? 'Filtered results'
-                  : 'Showing all publications'
-                }
-              </div>
-            </div>
-          </div>
-          
           {filteredPublications.length === 0 ? (
-            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-8 text-center">
-              <p className="text-gray-600 dark:text-gray-400">No publications match your filters. Try adjusting your criteria.</p>
-              <button 
-                onClick={clearFilters}
-                className="mt-4 text-blue-600 dark:text-blue-400 hover:underline"
-              >
-                Clear all filters
-              </button>
+            <div className="text-center py-12">
+              <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">No publications found</h3>
+              <p className="text-gray-600 dark:text-gray-400 mb-6">Try adjusting your filters to find what you're looking for.</p>
+              <Button variant="outline" onClick={clearFilters}>Clear All Filters</Button>
             </div>
           ) : (
-            <div className="grid md:grid-cols-2 gap-6">
-              {filteredPublications.map(publication => (
-                <div key={publication.id} className="bg-white dark:bg-gray-800 rounded-lg shadow-sm overflow-hidden">
-                  <div className="p-6">
-                    <div className="flex justify-between items-start mb-3">
-                      <span className="inline-block bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 text-xs px-2 py-1 rounded-full">
-                        {publication.type}
-                      </span>
-                      <span className="text-sm text-gray-500 dark:text-gray-400">
-                        {new Date(publication.date).toLocaleDateString('en-US', {
-                          year: 'numeric',
-                          month: 'short',
-                          day: 'numeric'
-                        })}
-                      </span>
+            <>
+              <div className="flex justify-between items-center mb-6">
+                <p className="text-sm text-gray-500 dark:text-gray-400">
+                  Showing {filteredPublications.length} {filteredPublications.length === 1 ? 'publication' : 'publications'}
+                  {hasActiveFilters && ' with applied filters'}
+                </p>
+                {hasActiveFilters && (
+                  <Button variant="ghost" size="sm" onClick={clearFilters}>
+                    Clear Filters
+                  </Button>
+                )}
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                {filteredPublications.map((publication) => (
+                  <Card key={publication.id} className="h-full flex flex-col overflow-hidden border-0 shadow-none">
+                    <div className="relative h-48 w-full">
+                      <img 
+                        src={publication.imageUrl || "/placeholder.jpg"}
+                        alt={publication.title}
+                        className="w-full h-full object-cover"
+                      />
                     </div>
-                    <h3 className="text-xl font-semibold mb-2 text-gray-800 dark:text-gray-100">{publication.title}</h3>
-                    <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">
-                      By <span className="font-medium">{publication.author}</span>
-                    </p>
-                    <p className="text-gray-700 dark:text-gray-300 mb-4 line-clamp-3">
-                      {publication.abstract}
-                    </p>
-                    <div className="flex flex-wrap gap-2 mb-4">
-                      {publication.tags.map(tag => (
-                        <span key={tag} className="text-xs bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 px-2 py-1 rounded">
-                          {tag}
-                        </span>
-                      ))}
-                    </div>
-                    <button className="text-blue-600 dark:text-blue-400 text-sm font-medium hover:underline">
-                      Read Full Publication
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
+                    <CardContent className="flex-1 p-6 flex flex-col pt-6">
+                      <div className="mb-3 flex items-center">
+                        <Badge variant="outline">{publication.category}</Badge>
+                        <span className="ml-auto text-sm text-gray-500">{publication.date}</span>
+                      </div>
+                      
+                      <h2 className="text-xl font-bold mb-3 text-gray-900 dark:text-white">
+                        {publication.title}
+                      </h2>
+                      
+                      <p className="text-gray-600 dark:text-gray-300 mb-4 flex-1">
+                        {publication.description.length > 150 
+                          ? `${publication.description.substring(0, 150)}...` 
+                          : publication.description}
+                      </p>
+                      
+                      <div className="flex flex-wrap gap-2 mb-4">
+                        {publication.tags.slice(0, 3).map((tag, index) => (
+                          <Badge key={index} variant="secondary" className="text-xs">
+                            {tag}
+                          </Badge>
+                        ))}
+                      </div>
+                      
+                      <div className="flex items-center justify-between mt-auto pt-4 border-t border-gray-100 dark:border-gray-800">
+                        <div className="text-sm text-gray-500">
+                          {publication.authors.length > 0 && (
+                            <span>By {publication.authors[0]}{publication.authors.length > 1 ? ' et al.' : ''}</span>
+                          )}
+                        </div>
+                        
+                        <Link 
+                          href={`/publications/${publication.slug}`}
+                          className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 text-sm font-medium"
+                        >
+                          Read More →
+                        </Link>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </>
           )}
         </div>
       </div>

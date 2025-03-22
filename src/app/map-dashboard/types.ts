@@ -14,13 +14,26 @@ export interface RegionData {
     value: number;
     percent: number;
   }[];
+  economyStats: {
+    name: string;
+    value: number;
+    isPercentage?: boolean;
+  }[];
+  tradeBalance: {
+    exports: number;
+    imports: number;
+    balance: number;
+  };
 }
 
 export interface GlobalHighlight {
   title: string;
-  value: string;
+  value: string | number;
   change: number;
   description: string;
+  trend: number;
+  isPercentage?: boolean;
+  isTrillion?: boolean;
 }
 
 export interface TradeRelationship {
@@ -35,4 +48,34 @@ export interface TradeStatistic {
   imports: number;
   exports: number;
   balance: number;
+}
+
+export interface ProductCategory {
+  name: string;
+  value: number;
+  percentage: number;
+  color: string;
+}
+
+export interface TradingPartner {
+  name: string;
+  value: number;
+  percentage: number;
+}
+
+export interface TradeRelationships {
+  productCategories: ProductCategory[];
+  tradingPartners: TradingPartner[];
+}
+
+export interface TradeStatItem {
+  name: string;
+  value: number;
+  isPercentage?: boolean;
+}
+
+export interface TradeStatGroup {
+  title: string;
+  description: string;
+  data: TradeStatItem[];
 } 
