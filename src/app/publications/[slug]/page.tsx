@@ -30,11 +30,9 @@ const publicationsData = [
 
        <p>Our findings reveal that Indonesia's economic vulnerabilities are concentrated in several key sectors. In trade, over 50% of Indonesia's exports go to five countries, with China alone accounting for 25%, while more than 28% of imports originate from China. In investment, 75% of Foreign Direct Investment (FDI) comes from just five sources—Singapore, China, Hong Kong, Japan, and Malaysia—indicating a significant reliance on a few economic partners. In the food sector, Indonesia depends heavily on imported wheat (Australia, Canada), garlic (China), and beef (Australia), making it susceptible to supply shocks and price volatility. In the energy sector, despite its resource wealth, Indonesia imports a large share of refined fuel from Singapore and Malaysia, posing a strategic risk in times of crisis. Meanwhile, technology and manufacturing remain reliant on China, Japan, and South Korea, and pharmaceutical supplies are dominated by China and India, with over 90% of raw materials being imported.</p>
 
-       <p>In conclusion, Indonesia's increasing integration into global markets and its ambition to play a greater role in the Indo-Pacific require a reassessment of its strategic dependencies. While economic interdependence remains a reality, Indonesia must take steps to mitigate vulnerabilities and enhance its resilience. By focusing on strategic dependencies, Indonesia can prioritise strategic autonomy without sliding into autarky.</p>
-
        <p>To address these vulnerabilities, we propose a set of strategic policy recommendations. First, Indonesia must diversify its trade and investment sources to reduce reliance on a few dominant countries. Expanding partnerships, particularly in critical sectors, will mitigate risks of supply disruptions. Second, domestic capacity-building should be prioritised, especially in key industries such as energy refining, food production and reserve, and pharmaceutical production, to mitigate Indonesia's dependence. Third, a proactive risk management framework must be developed to assess geopolitical threats and economic vulnerabilities through scenario planning and crisis response mechanisms. Finally, regional cooperation within ASEAN and the broader Indo-Pacific should be strengthened to build resilient supply chains and ensure access to essential commodities, even during crises times.</p>
 
-       <p>By diversifying trade and investment, strengthening domestic industries, and adopting a forward-looking economic security strategy, Indonesia can safeguard its long-term prosperity and maintain strategic autonomy in an evolving geopolitical landscape.</p>
+       <p>In conclusion, Indonesia's increasing integration into global markets and its ambition to play a greater role in the Indo-Pacific require a reassessment of its strategic dependencies. While economic interdependence remains a reality, Indonesia must take steps to mitigate vulnerabilities and enhance its resilience. By focusing on strategic dependencies, Indonesia can prioritise strategic autonomy without sliding into autarky.</p>
     `,
     imageUrl: "/report1.jpg",
     date: "March 2025",
@@ -64,7 +62,7 @@ export default function PublicationDetailPage({ params }: PublicationDetailPageP
         <div className="text-center">
           <h1 className="text-2xl font-bold mb-4 text-gray-900 dark:text-white">Publication Not Found</h1>
           <p className="text-gray-600 dark:text-gray-300 mb-6">The publication you're looking for doesn't exist or may have been moved.</p>
-          <Link href="/publications" className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300">
+          <Link href="/publications" className="text-[#005353] hover:text-[#003f3f] dark:text-[#00aeae] dark:hover:text-[#00c2c2]">
             ← Return to Publications
           </Link>
         </div>
@@ -72,100 +70,85 @@ export default function PublicationDetailPage({ params }: PublicationDetailPageP
     );
   }
   
-  // Split the longDescription to insert the table
-  const splitString = '<p>In conclusion, Indonesia\'s increasing integration into global markets';
-  const splitAddress = '<p>To address these vulnerabilities, we propose a set of strategic policy recommendations';
-  
-  let conclusion = '';
-  let toAddress = '';
-  let restContent = publication?.longDescription || '';
-  
-  if (publication?.longDescription) {
-    const conclusionIndex = publication.longDescription.indexOf(splitString);
-    const addressIndex = publication.longDescription.indexOf(splitAddress);
-    
-    if (conclusionIndex !== -1 && addressIndex !== -1) {
-      conclusion = publication.longDescription.substring(0, addressIndex);
-      toAddress = publication.longDescription.substring(addressIndex);
-    }
-  }
-
   // Policy measures table HTML
   const policyMeasuresTable = `
     <div class="my-8 overflow-x-auto">
       <table class="w-full border-collapse">
         <thead>
           <tr>
-            <th class="bg-teal-200 dark:bg-teal-800 p-4 text-left font-medium text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700">
-              Domestic Policy Measures<br />for Economic Resilience
+            <th class="bg-teal-100 dark:bg-teal-900 p-5 text-left font-semibold text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700 rounded-tl-md">
+              <div class="text-lg mb-1">Domestic Policy Measures</div>
+              <div class="text-sm font-medium opacity-80">for Economic Resilience</div>
             </th>
-            <th class="bg-teal-200 dark:bg-teal-800 p-4 text-left font-medium text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700">
-              Trade Policy and<br />Diversification of Partners
+            <th class="bg-teal-100 dark:bg-teal-900 p-5 text-left font-semibold text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700">
+              <div class="text-lg mb-1">Trade Policy</div>
+              <div class="text-sm font-medium opacity-80">and Diversification of Partners</div>
             </th>
-            <th class="bg-teal-200 dark:bg-teal-800 p-4 text-left font-medium text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700">
-              Foreign Policy<br />and Security Strategies
+            <th class="bg-teal-100 dark:bg-teal-900 p-5 text-left font-semibold text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700 rounded-tr-md">
+              <div class="text-lg mb-1">Foreign Policy</div>
+              <div class="text-sm font-medium opacity-80">and Security Strategies</div>
             </th>
           </tr>
         </thead>
         <tbody>
           <tr>
-            <td class="p-4 align-top border border-gray-200 dark:border-gray-700">
-              <p class="mb-2">Invest in boosting domestic production of critical goods.</p>
+            <td class="p-4 align-top border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-850">
+              <p class="mb-2 text-gray-800 dark:text-gray-200">Invest in boosting domestic production of critical goods.</p>
             </td>
-            <td class="p-4 align-top border border-gray-200 dark:border-gray-700">
-              <p class="mb-2">Broaden a pool of import partners for each critical commodity through bilateral trade agreements or MoUs.</p>
+            <td class="p-4 align-top border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-850">
+              <p class="mb-2 text-gray-800 dark:text-gray-200">Broaden a pool of import partners for each critical commodity through bilateral trade agreements or MoUs.</p>
             </td>
-            <td class="p-4 align-top border border-gray-200 dark:border-gray-700">
-              <p class="mb-2">Maintain a diverse set of strong relationships across the globe, especially with important commodity exporter or investor states.</p>
-            </td>
-          </tr>
-          <tr>
-            <td class="p-4 align-top border border-gray-200 dark:border-gray-700">
-              <p class="mb-2">Maintain robust strategic reserves to buffer short-term disruptions.</p>
-            </td>
-            <td class="p-4 align-top border border-gray-200 dark:border-gray-700">
-              <p class="mb-2">Focus on South-South cooperation to ensure food security.</p>
-            </td>
-            <td class="p-4 align-top border border-gray-200 dark:border-gray-700">
-              <p class="mb-2">Advocate against weaponisation of economic interdependence with preventive diplomacy.</p>
+            <td class="p-4 align-top border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-850">
+              <p class="mb-2 text-gray-800 dark:text-gray-200">Maintain a diverse set of strong relationships across the globe, especially with important commodity exporter or investor states.</p>
             </td>
           </tr>
           <tr>
-            <td class="p-4 align-top border border-gray-200 dark:border-gray-700">
-              <p class="mb-2">Developing alternative energy sources domestically.</p>
+            <td class="p-4 align-top border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900">
+              <p class="mb-2 text-gray-800 dark:text-gray-200">Maintain robust strategic reserves to buffer short-term disruptions.</p>
             </td>
-            <td class="p-4 align-top border border-gray-200 dark:border-gray-700">
-              <p class="mb-2">Annually monitor supplier concentration indexes.</p>
+            <td class="p-4 align-top border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900">
+              <p class="mb-2 text-gray-800 dark:text-gray-200">Focus on South-South cooperation to ensure food security.</p>
             </td>
-            <td class="p-4 align-top border border-gray-200 dark:border-gray-700">
-              <p class="mb-2">Utilise intelligence community to monitor global supply trends and give early warning.</p>
-            </td>
-          </tr>
-          <tr>
-            <td class="p-4 align-top border border-gray-200 dark:border-gray-700">
-              <p class="mb-2">Implement Productive Incentive Schemes in manufacturing to attract investment.</p>
-            </td>
-            <td class="p-4 align-top border border-gray-200 dark:border-gray-700">
-              <p class="mb-2">Push for stronger regional integration and pooling.</p>
-            </td>
-            <td class="p-4 align-top border border-gray-200 dark:border-gray-700">
-              <p class="mb-2">Establish an inter-agency Economic Security Task Force.</p>
+            <td class="p-4 align-top border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900">
+              <p class="mb-2 text-gray-800 dark:text-gray-200">Advocate against weaponisation of economic interdependence with preventive diplomacy.</p>
             </td>
           </tr>
           <tr>
-            <td class="p-4 align-top border border-gray-200 dark:border-gray-700"></td>
-            <td class="p-4 align-top border border-gray-200 dark:border-gray-700">
-              <p class="mb-2">Foreign trade strategy should involve carefully calibrated import protection or incentives.</p>
+            <td class="p-4 align-top border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-850">
+              <p class="mb-2 text-gray-800 dark:text-gray-200">Developing alternative energy sources domestically.</p>
             </td>
-            <td class="p-4 align-top border border-gray-200 dark:border-gray-700">
-              <p class="mb-2">Lead ASEAN in developing joint strategic reserves system.</p>
+            <td class="p-4 align-top border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-850">
+              <p class="mb-2 text-gray-800 dark:text-gray-200">Annually monitor supplier concentration indexes.</p>
+            </td>
+            <td class="p-4 align-top border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-850">
+              <p class="mb-2 text-gray-800 dark:text-gray-200">Utilise intelligence community to monitor global supply trends and give early warning.</p>
             </td>
           </tr>
           <tr>
-            <td class="p-4 align-top border border-gray-200 dark:border-gray-700"></td>
-            <td class="p-4 align-top border border-gray-200 dark:border-gray-700"></td>
-            <td class="p-4 align-top border border-gray-200 dark:border-gray-700">
-              <p class="mb-2">Pursue swap deals arrangements for resilience.</p>
+            <td class="p-4 align-top border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900">
+              <p class="mb-2 text-gray-800 dark:text-gray-200">Implement Productive Incentive Schemes in manufacturing to attract investment.</p>
+            </td>
+            <td class="p-4 align-top border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900">
+              <p class="mb-2 text-gray-800 dark:text-gray-200">Push for stronger regional integration and pooling.</p>
+            </td>
+            <td class="p-4 align-top border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900">
+              <p class="mb-2 text-gray-800 dark:text-gray-200">Establish an inter-agency Economic Security Task Force.</p>
+            </td>
+          </tr>
+          <tr>
+            <td class="p-4 align-top border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-850"></td>
+            <td class="p-4 align-top border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-850">
+              <p class="mb-2 text-gray-800 dark:text-gray-200">Foreign trade strategy should involve carefully calibrated import protection or incentives.</p>
+            </td>
+            <td class="p-4 align-top border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-850">
+              <p class="mb-2 text-gray-800 dark:text-gray-200">Lead ASEAN in developing joint strategic reserves system.</p>
+            </td>
+          </tr>
+          <tr>
+            <td class="p-4 align-top border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 rounded-bl-md"></td>
+            <td class="p-4 align-top border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900"></td>
+            <td class="p-4 align-top border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 rounded-br-md">
+              <p class="mb-2 text-gray-800 dark:text-gray-200">Pursue swap deals arrangements for resilience.</p>
             </td>
           </tr>
         </tbody>
@@ -208,7 +191,7 @@ export default function PublicationDetailPage({ params }: PublicationDetailPageP
     <div className="max-w-7xl mx-auto px-6 sm:px-8 py-12">
       {/* Back link */}
       <div className="mb-8">
-        <Link href="/publications" className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 inline-flex items-center">
+        <Link href="/publications" className="text-[#005353] hover:text-[#003f3f] dark:text-[#00aeae] dark:hover:text-[#00c2c2] inline-flex items-center">
           <ArrowLeftIcon className="mr-2 h-4 w-4" />
           Back to Publications
         </Link>
@@ -281,22 +264,32 @@ export default function PublicationDetailPage({ params }: PublicationDetailPageP
               </div>
             </div>
             
-            <div className="prose prose-lg max-w-none mb-8 text-gray-700 dark:text-gray-300 overflow-hidden [&>p]:mb-4 [&>p]:text-base [&>p]:leading-relaxed">
-              {conclusion && (
-                <div dangerouslySetInnerHTML={{ __html: conclusion }} />
-              )}
-              
-              {/* Insert policy measures table */}
-              <div dangerouslySetInnerHTML={{ __html: policyMeasuresTable }} />
-              
-              {toAddress && (
-                <div dangerouslySetInnerHTML={{ __html: toAddress }} />
-              )}
-              
-              {!conclusion && !toAddress && (
-                <div dangerouslySetInnerHTML={{ __html: restContent }} />
-              )}
-            </div>
+            <div className="longDescription" dangerouslySetInnerHTML={{ 
+              __html: `
+                <div class="prose prose-lg max-w-none text-gray-800 dark:text-gray-200 leading-relaxed">
+                  ${publication.longDescription.substring(0, publication.longDescription.indexOf('<p>To address these vulnerabilities')).replace(
+                    /<p>/g, 
+                    '<p class="mb-8 text-base sm:text-lg leading-7 sm:leading-8 max-w-prose">'
+                  )}
+                  
+                  ${publication.longDescription.substring(
+                    publication.longDescription.indexOf('<p>To address these vulnerabilities'),
+                    publication.longDescription.indexOf('<p>In conclusion')
+                  ).replace(
+                    /<p>/g, 
+                    '<p class="mb-8 text-base sm:text-lg leading-7 sm:leading-8 max-w-prose">'
+                  )}
+                  
+                  ${policyMeasuresTable}
+                  
+                  ${publication.longDescription.substring(
+                    publication.longDescription.indexOf('<p>In conclusion')
+                  ).replace(
+                    /<p>/g, 
+                    '<p class="mb-8 text-base sm:text-lg leading-7 sm:leading-8 max-w-prose">'
+                  )}
+                </div>
+              `}} />
             
             <div className="mt-8">
               <h3 className="text-lg font-semibold mb-3 text-gray-900 dark:text-white">Tags</h3>

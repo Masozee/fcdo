@@ -312,8 +312,8 @@ export default function PublicationsPage() {
                       </h2>
                       
                       <p className="text-gray-600 dark:text-gray-300 mb-4 flex-1">
-                        {publication.description.length > 150 
-                          ? `${publication.description.substring(0, 150)}...` 
+                        {publication.description.length > 160 
+                          ? `${publication.description.substring(0, 160)}...` 
                           : publication.description}
                       </p>
                       
