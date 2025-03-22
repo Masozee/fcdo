@@ -32,7 +32,7 @@ const publications: Publication[] = [
 export function Publications() {
   return (
     <div className="px-4 py-6 md:px-6 lg:py-12 bg-gray-50 dark:bg-gray-900">
-      <div className="container mx-auto">
+      <div className="max-w-7xl mx-auto px-6 sm:px-8">
         <div className="flex flex-col gap-2 mb-8">
           <h2 className="text-3xl font-bold tracking-tight">Publications</h2>
           <p className="text-gray-500 dark:text-gray-400">

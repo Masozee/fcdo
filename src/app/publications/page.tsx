@@ -112,7 +112,7 @@ export default function PublicationsPage() {
   const hasActiveFilters = searchQuery || selectedCategories.length > 0 || selectedTags.length > 0 || selectedAuthors.length > 0;
   
   return (
-    <div className="container mx-auto px-4 py-12">
+    <div className="max-w-7xl mx-auto px-6 sm:px-8 py-12">
       <div className="mb-10">
         <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Publications</h1>
         <p className="mt-2 text-gray-600 dark:text-gray-300">
