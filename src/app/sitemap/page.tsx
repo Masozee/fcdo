@@ -14,14 +14,14 @@ export default function SitemapPage() {
     { path: "/map-dashboard", label: "Interactive Map" },
     { path: "/db-map", label: "Database Map" },
     { path: "/geo-data", label: "Geo Data" },
-    { path: "/strategicdependencyreport", label: "Strategic Dependency Report (PDF)" },
+    { path: "https://s3-csis-web.s3.ap-southeast-1.amazonaws.com/doc/Strategic+Dependency+Final+Report.pdf", label: "Strategic Dependency Report (PDF)" },
   ];
 
   // Define categories for better organization
   const categories = {
     "Main Pages": ["/", "/about", "/contact", "/publications", "/teams"],
     "Data Visualization": ["/data", "/trade-map", "/countries", "/map-dashboard", "/db-map", "/geo-data"],
-    "Reports": ["/strategicdependencyreport"],
+    "Reports": ["https://s3-csis-web.s3.ap-southeast-1.amazonaws.com/doc/Strategic+Dependency+Final+Report.pdf"],
   };
 
   return (

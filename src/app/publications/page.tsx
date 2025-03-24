@@ -22,7 +22,7 @@ const publicationsData = [
     slug: "indonesias-strategic-dependencies",
     authors: ["Lina A. Alexandra", "Andrew W. Mantong", "Dandy Rafitrandi", "M. Habib A. Dzakwan", "M. Waffaa Kharisma", "Pieter A. Pandie", "Anastasia A. Widyautami", "Balthazaar A. Ardhillah"],
     tags: ["Indonesia", "Strategic Trade", "Global Markets"],
-    downloadUrl: "http://localhost:3000/strategicdependencyreport"
+    downloadUrl: "https://s3-csis-web.s3.ap-southeast-1.amazonaws.com/doc/Strategic+Dependency+Final+Report.pdf"
   }
 ];
 
@@ -313,7 +313,7 @@ export default function PublicationsPage() {
                       
                       <p className="text-gray-600 dark:text-gray-300 mb-4 flex-1">
                         {publication.description.length > 160 
-                          ? `${publication.description.substring(0, 160)}...` 
+                          ? `${publication.description.substring(0, 160)}...`
                           : publication.description}
                       </p>
                       
@@ -334,7 +334,7 @@ export default function PublicationsPage() {
                         
                         <Link 
                           href={`/publications/${publication.slug}`}
-                          className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 text-sm font-medium"
+                          className="text-[#005353] hover:text-[#003f3f] dark:text-[#00aeae] dark:hover:text-[#00c2c2] text-sm font-medium"
                         >
                           Read More →
                         </Link>
@@ -349,4 +349,4 @@ export default function PublicationsPage() {
       </div>
     </div>
   );
-} 
+}

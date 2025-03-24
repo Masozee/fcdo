@@ -53,7 +53,7 @@ export function Hero() {
             </div>
             
             <div className="flex flex-wrap gap-4">
-              <Link href="/strategicdependencyreport">
+              <Link href="https://s3-csis-web.s3.ap-southeast-1.amazonaws.com/doc/Strategic+Dependency+Final+Report.pdf">
               <button className="px-6 py-3 bg-accent hover:bg-accent-dark text-white rounded-md transition-colors">
                 Download the Report
               </button>

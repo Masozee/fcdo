@@ -25,7 +25,7 @@ const publications: Publication[] = [
     slug: "indonesias-strategic-dependencies",
     authors: ["Lina A. Alexandra", "Andrew W. Mantong", "Dandy Rafitrandi", "M. Habib A. Dzakwan", "M. Waffaa Kharisma", "Pieter A. Pandie", "Anastasia A. Widyautami", "Balthazaar A. Ardhillah"],
     tags: ["Indonesia", "Strategic Trade", "Global Markets"],
-    downloadUrl: "https://isdp.csis.or.id/strategicdependencyreport"
+    downloadUrl: "https://s3-csis-web.s3.ap-southeast-1.amazonaws.com/doc/Strategic+Dependency+Final+Report.pdf"
   }
 ]
 
