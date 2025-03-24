@@ -12,7 +12,7 @@ app.prepare().then(() => {
   // Handle the redirect for strategicdependencyreport with any trailing path
   server.get(['/strategicdependencyreport', '/strategicdependencyreport/*'], (req, res) => {
     console.log('Redirecting to Strategic Dependency Report PDF');
-    return res.redirect(301, 'https://s3-csis-web.s3.ap-southeast-1.amazonaws.com/Strategic+Dependency+Final+Report.pdf');
+    return res.redirect(301, 'https://s3-csis-web.s3.ap-southeast-1.amazonaws.com/doc/Strategic+Dependency+Final+Report.pdf');
   });
 
   // Serve static files from the 'public' directory
