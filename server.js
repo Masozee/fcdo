@@ -11,8 +11,19 @@ app.prepare().then(() => {
 
   // Handle the redirect for strategicdependencyreport with any trailing path
   server.get(['/strategicdependencyreport', '/strategicdependencyreport/*'], (req, res) => {
-    console.log('Redirecting to Strategic Dependency Report PDF');
+    console.log('DEBUG: Redirecting to Strategic Dependency Report PDF');
+    console.log('  Request URL:', req.url);
+    console.log('  Redirecting to: https://s3-csis-web.s3.ap-southeast-1.amazonaws.com/doc/Strategic+Dependency+Final+Report.pdf');
     return res.redirect(301, 'https://s3-csis-web.s3.ap-southeast-1.amazonaws.com/doc/Strategic+Dependency+Final+Report.pdf');
+  });
+
+  // Add a test route to verify Express is handling requests
+  server.get('/express-test', (req, res) => {
+    console.log('DEBUG: Express test route hit');
+    return res.json({ 
+      message: 'Express is correctly handling routes',
+      timestamp: new Date().toISOString()
+    });
   });
 
   // Serve static files from the 'public' directory
