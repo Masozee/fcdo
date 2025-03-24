@@ -9,7 +9,7 @@ export const metadata: Metadata = {
     url: "https://isdp.csis.or.id/trade-map",
     images: [
       {
-        url: "/map.jpg",
+        url: "/paul-teysen-bukjsECgmeU-unsplash.jpg",
         width: 1200,
         height: 630,
         alt: "Trade Map - Indonesia's Strategic Dependency"

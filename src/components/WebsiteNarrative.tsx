@@ -6,7 +6,7 @@ import Image from 'next/image';
 
 export function WebsiteNarrative() {
   return (
-    <section className="relative py-28 bg-gray-50 dark:bg-gray-800 overflow-hidden">
+    <section className="relative py-28 bg-gray-50 dark:bg-gray-950 overflow-hidden">
       {/* Map image on the left - hidden on mobile */}
       <div className="absolute left-0 top-1/2 transform -translate-y-1/2 -translate-x-[5%] max-h-[650px] w-auto h-full max-w-[150vw] z-10 py-10 hidden md:block">
         <motion.div
@@ -17,7 +17,7 @@ export function WebsiteNarrative() {
           className="relative w-full h-full rounded-[2rem] overflow-hidden shadow-2xl"
         >
           <Image 
-            src="/map.png" 
+            src="/paul-teysen-bukjsECgmeU-unsplash.jpg" 
             alt="Trade Map Visualization" 
             width={1000}
             height={800}
@@ -33,7 +33,7 @@ export function WebsiteNarrative() {
           <div className="md:hidden w-full mb-8">
             <div className="relative w-full h-[300px] rounded-xl overflow-hidden shadow-lg">
               <Image 
-                src="/map.png" 
+                src="/paul-teysen-bukjsECgmeU-unsplash.jpg" 
                 alt="Trade Map Visualization" 
                 fill
                 quality={90}

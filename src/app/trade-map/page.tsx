@@ -66,14 +66,14 @@ export default function TradeMapPage() {
   };
 
   return (
-    <div className="container mx-auto py-6 px-4 sm:px-6 lg:px-8">
+    <div className="container mx-auto py-6 px-4 sm:px-6 lg:px-8 bg-gray-50 dark:bg-gray-950 rounded-lg">
       <h1 className="text-2xl sm:text-3xl font-bold mb-2 sm:mb-4">Global Trade Flows</h1>
       <p className="text-gray-600 dark:text-gray-400 mb-6 sm:mb-8">
         Visualize total trade volumes between countries. The map shows total trade value by country, with darker colors representing higher trade volumes.
       </p>
       
       <div className="grid grid-cols-1 gap-6 sm:gap-8">
-        <Card className="shadow-sm">
+        <Card className="shadow-md bg-white dark:bg-gray-900">
           <CardHeader className="pb-2 sm:pb-4">
             <CardTitle>Trade Volume Map</CardTitle>
             <CardDescription>
@@ -88,7 +88,7 @@ export default function TradeMapPage() {
         </Card>
 
         {selectedCountry && (
-          <Card className="shadow-sm">
+          <Card className="shadow-md bg-white dark:bg-gray-900">
             <CardHeader className="pb-2 sm:pb-4">
               <CardTitle>
                 {COUNTRY_NAMES[selectedCountry] || selectedCountry} Trade Profile
@@ -106,7 +106,54 @@ export default function TradeMapPage() {
                   <p>{error}</p>
                 </div>
               ) : countryData ? (
-                <CountryDetailContent data={countryData} />
+                <div className="space-y-4 sm:space-y-6">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                    <Card>
+                      <CardHeader className="pb-2">
+                        <CardTitle className="text-lg">Total Trade</CardTitle>
+                        <CardDescription>Total value of imports and exports</CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="text-xl sm:text-2xl font-bold">
+                          {formatCurrency(countryData.summary.total_value)}
+                        </div>
+                        <p className="text-gray-500 text-sm">
+                          Based on {formatNumber(countryData.summary.trade_count)} transactions
+                        </p>
+                      </CardContent>
+                    </Card>
+
+                    <Card>
+                      <CardHeader className="pb-2">
+                        <CardTitle className="text-lg">Imports</CardTitle>
+                        <CardDescription>Total value of imported goods</CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="text-xl sm:text-2xl font-bold">
+                          {formatCurrency(countryData.summary.import_value)}
+                        </div>
+                        <p className="text-gray-500 text-sm">
+                          {((countryData.summary.import_value / countryData.summary.total_value) * 100).toFixed(1)}% of total trade
+                        </p>
+                      </CardContent>
+                    </Card>
+
+                    <Card>
+                      <CardHeader className="pb-2">
+                        <CardTitle className="text-lg">Exports</CardTitle>
+                        <CardDescription>Total value of exported goods</CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="text-xl sm:text-2xl font-bold">
+                          {formatCurrency(countryData.summary.export_value)}
+                        </div>
+                        <p className="text-gray-500 text-sm">
+                          {((countryData.summary.export_value / countryData.summary.total_value) * 100).toFixed(1)}% of total trade
+                        </p>
+                      </CardContent>
+                    </Card>
+                  </div>
+                </div>
               ) : (
                 <p>Select a country on the map to view its trade profile</p>
               )}
