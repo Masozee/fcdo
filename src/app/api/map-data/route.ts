@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import db from '@/lib/duckdb';
+import { withCache } from '@/lib/cacheMiddleware';
 
 /**
  * API route to get country data specifically formatted for choropleth maps
  * Supports filtering by year, metric (imports, exports, or total trade), and specified criteria
  */
-export async function GET(request: NextRequest) {
+async function handler(request: NextRequest) {
   try {
     // Parse query parameters
     const url = new URL(request.url);
@@ -87,4 +88,10 @@ export async function GET(request: NextRequest) {
       countries: [],
     }, { status: 500 });
   }
-} 
+}
+
+// Wrap the handler with caching middleware - cache for 24 hours for map data
+export const GET = withCache(handler, { 
+  prefix: 'map-data:',
+  ttl: 86400, // 24 hours
+}); 

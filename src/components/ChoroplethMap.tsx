@@ -15,6 +15,7 @@ import {
   MapYear,
   MapMetric
 } from '@/types/map-data';
+import { fetchWithCache } from '@/lib/apiUtils';
 
 // Interface for country feature in GeoJSON
 interface CountryFeature extends Feature {
@@ -58,13 +59,13 @@ export function ChoroplethMap({ onCountrySelect, className = "", isBackground = 
   const fetchMapData = useCallback(async () => {
     try {
       setIsLoading(true);
-      const response = await fetch(`/api/map-data?year=${selectedYear !== 'all' ? selectedYear : ''}&metric=${selectedMetric}`);
       
-      if (!response.ok) {
-        throw new Error(`Failed to fetch map data: ${response.statusText}`);
-      }
+      // Use the new fetchWithCache utility with a 30-minute cache duration
+      const data: ChoroplethMapResponse = await fetchWithCache(
+        `/api/map-data?year=${selectedYear !== 'all' ? selectedYear : ''}&metric=${selectedMetric}`,
+        { cacheDuration: 30 * 60 * 1000 } // 30 minutes
+      );
       
-      const data: ChoroplethMapResponse = await response.json();
       setCountryData(data.countries);
       setMetadata(data.metadata);
       setError(null);
@@ -79,13 +80,12 @@ export function ChoroplethMap({ onCountrySelect, className = "", isBackground = 
   // Fetch world map data
   const fetchWorldData = useCallback(async () => {
     try {
-      const response = await fetch('/data/world-countries.json');
+      // Use the new fetchWithCache utility with a long cache duration for static data
+      const data: WorldData = await fetchWithCache(
+        '/data/world-countries.json',
+        { cacheDuration: 24 * 60 * 60 * 1000 } // 24 hours - this is static data
+      );
       
-      if (!response.ok) {
-        throw new Error(`Failed to fetch world map data: ${response.statusText}`);
-      }
-      
-      const data: WorldData = await response.json();
       setWorldData(data);
     } catch (err) {
       console.error('Error fetching world map data:', err);
