@@ -201,6 +201,11 @@ export default function MapDashboardPage() {
   };
 
   const formatValue = (value: string | number, isPercentage: boolean = false, trillions: boolean = false) => {
+    // Handle null or undefined values
+    if (value === null || value === undefined) {
+      return isPercentage ? '0.0%' : trillions ? '$0.0 trillion' : '$0';
+    }
+    
     if (typeof value === 'string') {
       // If it's already a formatted string, just return it
       return value;
@@ -212,7 +217,13 @@ export default function MapDashboardPage() {
     if (trillions) {
       return `$${value.toFixed(1)} trillion`;
     }
-    return `$${value.toFixed(1)} billion`;
+    
+    // Format as a standard USD value with commas for thousands
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+      maximumFractionDigits: 0
+    }).format(value);
   };
 
   const formatTrend = (value: number) => {
@@ -537,25 +548,20 @@ export default function MapDashboardPage() {
                 
                 <Tabs.Content value="statistics" className="h-full">
                   <div className="space-y-6">
-                    <h3 className="text-lg font-semibold">Trade Statistics (2019-2023)</h3>
-                    <div className="space-y-4">
-                      {mockTradeStatistics.map((stat, index) => (
-                        <div key={index} className="p-3 rounded-md bg-muted/70">
-                          <div className="flex justify-between items-center mb-2">
-                            <span className="font-medium">{stat.year}</span>
-                            <span className={`text-sm ${stat.balance >= 0 ? 'text-green-500' : 'text-red-500'}`}>
-                              Balance: {formatValue(stat.balance)}
-                            </span>
+                    <div className="grid grid-cols-1 gap-6">
+                      {mockTradeStatistics.map((statGroup, index) => (
+                        <div key={index} className="bg-muted/70 p-4 rounded-md">
+                          <div className="mb-3">
+                            <h3 className="text-lg font-semibold">{statGroup.title}</h3>
+                            <p className="text-sm text-muted-foreground">{statGroup.description}</p>
                           </div>
-                          <div className="grid grid-cols-2 gap-4">
-                            <div>
-                              <span className="text-sm text-muted-foreground">Imports</span>
-                              <div className="text-lg font-medium">{formatValue(stat.imports)}</div>
-                            </div>
-                            <div>
-                              <span className="text-sm text-muted-foreground">Exports</span>
-                              <div className="text-lg font-medium">{formatValue(stat.exports)}</div>
-                            </div>
+                          <div className="space-y-4">
+                            {statGroup.data.map((item, itemIndex) => (
+                              <div key={itemIndex} className="flex justify-between items-center">
+                                <span>{item.name}</span>
+                                <span className="font-medium">{formatValue(item.value, item.isPercentage)}</span>
+                              </div>
+                            ))}
                           </div>
                         </div>
                       ))}
@@ -565,35 +571,37 @@ export default function MapDashboardPage() {
                 
                 <Tabs.Content value="relationships" className="h-full">
                   <div className="space-y-6">
-                    <h3 className="text-lg font-semibold">Key Trade Relationships</h3>
-                    <div className="space-y-4">
-                      {mockTradeRelationships.map((relationship, index) => (
-                        <Card key={index} className="shadow-sm bg-background/80">
-                          <CardHeader className="pb-2">
-                            <CardTitle className="text-base flex items-center">
-                              {relationship.source} 
-                              <ChevronRightIcon className="mx-2 h-4 w-4" /> 
-                              {relationship.target}
-                            </CardTitle>
-                          </CardHeader>
-                          <CardContent>
-                            <div className="flex justify-between items-center mb-2">
-                              <span className="text-muted-foreground">Trade Volume</span>
-                              <span className="font-medium">{formatValue(relationship.value)}</span>
+                    <div>
+                      <h3 className="text-lg font-semibold mb-3">Product Categories</h3>
+                      <div className="space-y-2">
+                        {mockTradeRelationships.productCategories.map((category, index) => (
+                          <div key={index} className="flex justify-between items-center p-2 rounded-md bg-muted/70">
+                            <div className="flex items-center gap-2">
+                              <div className="w-3 h-3 rounded-full" style={{ backgroundColor: category.color }}></div>
+                              <span>{category.name}</span>
                             </div>
-                            <div>
-                              <span className="text-sm text-muted-foreground">Key Products:</span>
-                              <div className="flex flex-wrap gap-2 mt-1">
-                                {relationship.products.map((product, idx) => (
-                                  <span key={idx} className="text-xs px-2 py-1 bg-muted rounded-full">
-                                    {product}
-                                  </span>
-                                ))}
-                              </div>
+                            <div className="flex items-center gap-2">
+                              <span className="text-muted-foreground">{formatValue(category.value)}</span>
+                              <span className="text-sm">{category.percentage.toFixed(1)}%</span>
                             </div>
-                          </CardContent>
-                        </Card>
-                      ))}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                    
+                    <div>
+                      <h3 className="text-lg font-semibold mb-3">Top Trading Partners</h3>
+                      <div className="space-y-2">
+                        {mockTradeRelationships.tradingPartners.map((partner, index) => (
+                          <div key={index} className="flex justify-between items-center p-2 rounded-md bg-muted/70">
+                            <span>{partner.name}</span>
+                            <div className="flex items-center gap-2">
+                              <span className="text-muted-foreground">{formatValue(partner.value)}</span>
+                              <span className="text-sm">{partner.percentage.toFixed(1)}%</span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
                     </div>
                   </div>
                 </Tabs.Content>
