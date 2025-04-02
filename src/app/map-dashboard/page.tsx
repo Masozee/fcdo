@@ -2,17 +2,14 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { D3TradeMap } from "@/components/D3TradeMap";
-import { ChoroplethMap } from "@/components/ChoroplethMap"; 
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import * as Tabs from '@radix-ui/react-tabs';
 import * as Separator from '@radix-ui/react-separator';
 import { InfoCircledIcon, BarChartIcon, GlobeIcon, ChevronRightIcon, ReloadIcon, ArrowUpIcon, ArrowDownIcon, MagnifyingGlassIcon, Cross2Icon, PinRightIcon } from '@radix-ui/react-icons';
-import { AlertCircle } from "lucide-react";
 import { mockGlobalHighlights, mockRegionData, mockTradeRelationships, mockTradeStatistics } from './mock-data';
 import { RegionData } from './types';
 import * as Popover from '@radix-ui/react-popover';
 import ClientOnly from '@/lib/use-client-only';
-import { CountryMapData } from '@/types/map-data';
 
 // Sample countries list (in a real application, this would come from your API)
 const SAMPLE_COUNTRIES = [
@@ -101,10 +98,6 @@ export default function MapDashboardPage() {
   const [filteredCountries, setFilteredCountries] = useState<string[]>([]);
   const [showSuggestions, setShowSuggestions] = useState<boolean>(false);
   const [isSearchSticky, setIsSearchSticky] = useState<boolean>(false);
-  const [selectedCountryData, setSelectedCountryData] = useState<CountryMapData | null>(null);
-  const [countryApiData, setCountryApiData] = useState<any | null>(null);
-  const [isLoading, setIsLoading] = useState<boolean>(false);
-  const [error, setError] = useState<string | null>(null);
 
   // Available regions for mapping to countries
   const availableRegions = Object.keys(mockRegionData);
@@ -142,56 +135,61 @@ export default function MapDashboardPage() {
     setMapReady(true);
   }, []);
 
-  // Get ISO country code from country name
-  const getCountryCode = (countryName: string): string | null => {
-    // Reverse lookup from COUNTRY_TO_ISO
-    for (const [code, name] of Object.entries(COUNTRY_TO_ISO)) {
-      if (name === countryName) {
-        return code.toUpperCase();
+  // Handle region selection (for data display)
+  const handleRegionSelect = (region: string) => {
+    // Check if the region is actually a country (when clicked on the map)
+    if (SAMPLE_COUNTRIES.includes(region)) {
+      // It's a country click from the map
+      setSelectedCountry(region);
+      setSearchQuery(region);
+      
+      // Find the appropriate region for this country
+      const countryRegion = COUNTRY_TO_REGION[region as keyof typeof COUNTRY_TO_REGION];
+      if (countryRegion) {
+        setSelectedRegion(countryRegion);
+      } else {
+        setSelectedRegion("Europe"); // Default fallback
       }
+    } else {
+      // It's a regular region selection
+      setSelectedRegion(region);
     }
-    return null;
   };
-
-  // Handle country selection from choropleth map
-  const handleChoroplethCountrySelect = async (country: string) => {
+  
+  // Handle country selection (from search)
+  const handleCountrySelect = (country: string) => {
+    if (!mapReady) {
+      console.warn("Map is not ready yet, waiting before focusing country");
+      // Wait a bit before setting the country to focus
+      setTimeout(() => {
+        setSelectedCountry(country);
+        setSearchQuery(country);
+        setShowSuggestions(false);
+        
+        // Map the country to a region for our mock data
+        if (country.includes("United States") || country.includes("Canada") || country.includes("Mexico")) {
+          setSelectedRegion("North America");
+        } else if (country.includes("China") || country.includes("Japan") || country.includes("India")) {
+          setSelectedRegion("Asia");
+        } else {
+          setSelectedRegion("Europe"); // Default to Europe for other countries in this example
+        }
+      }, 1000);
+      return;
+    }
+    
     setSelectedCountry(country);
     setSearchQuery(country);
     setShowSuggestions(false);
     
-    try {
-      setIsLoading(true);
-      setError(null);
-      
-      // Map country to region
-      const countryRegion = COUNTRY_TO_REGION[country as keyof typeof COUNTRY_TO_REGION];
-      if (countryRegion) {
-        setSelectedRegion(countryRegion);
-      } else {
-        setSelectedRegion("Global"); // Default fallback
-      }
-      
-      // Get country code
-      const countryCode = getCountryCode(country);
-      
-      if (countryCode) {
-        // Fetch country details from API
-        const response = await fetch(`/api/country/${countryCode}?include_products=true`);
-        
-        if (!response.ok) {
-          throw new Error(`Failed to fetch country data for ${country}`);
-        }
-        
-        const data = await response.json();
-        setCountryApiData(data);
-      } else {
-        console.warn(`Could not find ISO code for country: ${country}`);
-      }
-    } catch (error) {
-      console.error("Error fetching country details:", error);
-      setError(error instanceof Error ? error.message : 'Failed to fetch country data');
-    } finally {
-      setIsLoading(false);
+    // Map the country to a region for our mock data
+    // In a real application, you'd look up the correct region for the country
+    if (country.includes("United States") || country.includes("Canada") || country.includes("Mexico")) {
+      setSelectedRegion("North America");
+    } else if (country.includes("China") || country.includes("Japan") || country.includes("India")) {
+      setSelectedRegion("Asia");
+    } else {
+      setSelectedRegion("Europe"); // Default to Europe for other countries in this example
     }
   };
 
@@ -200,7 +198,6 @@ export default function MapDashboardPage() {
     setFilteredCountries([]);
     setShowSuggestions(false);
     setSelectedCountry(null);
-    setCountryApiData(null);
   };
 
   const formatValue = (value: string | number, isPercentage: boolean = false, trillions: boolean = false) => {
@@ -216,22 +213,6 @@ export default function MapDashboardPage() {
       return `$${value.toFixed(1)} trillion`;
     }
     return `$${value.toFixed(1)} billion`;
-  };
-
-  const formatCurrency = (value: number) => {
-    if (value >= 1_000_000_000_000) {
-      return `$${(value / 1_000_000_000_000).toFixed(2)} trillion`;
-    } else if (value >= 1_000_000_000) {
-      return `$${(value / 1_000_000_000).toFixed(2)} billion`;
-    } else if (value >= 1_000_000) {
-      return `$${(value / 1_000_000).toFixed(2)} million`;
-    } else {
-      return `$${value.toLocaleString()}`;
-    }
-  };
-
-  const formatNumber = (value: number) => {
-    return value.toLocaleString();
   };
 
   const formatTrend = (value: number) => {
@@ -255,376 +236,383 @@ export default function MapDashboardPage() {
       {/* Map section - full screen background */}
       <div className="absolute inset-0 w-full h-full">
         <ClientOnly>
-          <ChoroplethMap
-            onCountrySelect={handleChoroplethCountrySelect}
-            className="w-full h-full"
-            isBackground={true}
+          <D3TradeMap 
+            onRegionSelect={handleRegionSelect} 
+            isBackground={true} 
+            focusCountry={selectedCountry}
+            onMapReady={handleMapReady}
           />
         </ClientOnly>
       </div>
       
-      {/* Sidebar layout */}
-      <div className="grid grid-cols-12 h-full relative z-10">
-        {/* Left sidebar with search and region statistics */}
-        <div className="col-span-3 bg-white/90 dark:bg-zinc-900/90 backdrop-blur p-4 h-full overflow-auto">
-          <div className="sticky top-0 pt-4 pb-6 bg-white/90 dark:bg-zinc-900/90 backdrop-blur z-10">
-            <h1 className="text-2xl font-bold mb-4 text-gray-900 dark:text-white">Global Trade Map</h1>
-            
-            {/* Search input */}
-            <div className="relative mb-6">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <MagnifyingGlassIcon className="h-4 w-4 text-gray-400" />
-              </div>
-              <input
-                type="text"
-                className="block w-full rounded-md border border-gray-300 dark:border-zinc-700 pl-10 pr-10 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-zinc-800 dark:text-zinc-100"
-                placeholder="Search for a country..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                onFocus={() => setShowSuggestions(true)}
-              />
-              {searchQuery && (
-                <button 
-                  onClick={clearSearch}
-                  className="absolute inset-y-0 right-0 pr-3 flex items-center"
-                >
-                  <Cross2Icon className="h-4 w-4 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200" />
-                </button>
-              )}
-            </div>
-            
-            {/* Search results dropdown */}
-            {showSuggestions && filteredCountries.length > 0 && (
-              <div className="mt-1 bg-white dark:bg-zinc-800 rounded-md shadow-lg z-50 max-h-[300px] overflow-auto border border-gray-200 dark:border-zinc-700">
-                <ul className="py-1">
-                  {filteredCountries.map((country) => (
-                    <li 
-                      key={country}
-                      className="px-4 py-2 hover:bg-gray-100 dark:hover:bg-zinc-700 cursor-pointer flex items-center"
-                      onClick={() => handleChoroplethCountrySelect(country)}
-                    >
-                      <div className="w-6 h-4 mr-2 flex-shrink-0 overflow-hidden">
-                        {COUNTRY_TO_ISO[country as keyof typeof COUNTRY_TO_ISO] && (
-                          <img 
-                            src={`https://flagcdn.com/w40/${COUNTRY_TO_ISO[country as keyof typeof COUNTRY_TO_ISO]}.png`} 
-                            alt={`${country} flag`}
-                            className="w-full h-auto object-cover"
-                          />
-                        )}
-                      </div>
-                      <span className="text-sm dark:text-zinc-200">{country}</span>
-                    </li>
-                  ))}
-                </ul>
+      {/* Search bar overlay - sticky on left side */}
+      <div className={`fixed left-0 ml-6 z-20 transition-all duration-300 ${
+        isSearchSticky ? 'top-20 sm:top-24' : 'top-30 sm:top-32'
+      }`}>
+        <div className="bg-background/90 backdrop-blur-sm p-4 rounded-lg shadow-md w-72">
+          <div className="flex items-center justify-between mb-2">
+            <h2 className="text-lg font-semibold">Find Country</h2>
+            {selectedCountry && (
+              <div className="flex items-center space-x-1 text-xs px-2 py-1 bg-primary/20 rounded-full">
+                <PinRightIcon className="h-3 w-3" />
+                <span>Focused</span>
               </div>
             )}
+          </div>
+          <div className="relative ">
+            <div className="flex ">
+              <div className="relative flex-grow ">
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onFocus={() => setShowSuggestions(true)}
+                  placeholder="Search countries..."
+                  className="px-3 py-2 w-full rounded-l-md border border-input bg-background"
+                />
+                {searchQuery && (
+                  <button 
+                    onClick={clearSearch}
+                    className="absolute right-2 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  >
+                    <Cross2Icon className="h-4 w-4" />
+                  </button>
+                )}
+              </div>
+              <button
+                className="px-3 py-2 rounded-r-md bg-primary text-primary-foreground border border-primary"
+              >
+                <MagnifyingGlassIcon className="h-4 w-4" />
+              </button>
+            </div>
+            
+            {/* Autosuggestion dropdown */}
+            {showSuggestions && filteredCountries.length > 0 && (
+              <div className="absolute top-full left-0 right-0 mt-1 bg-background border border-input rounded-md shadow-lg max-h-60 overflow-y-auto z-20">
+                {filteredCountries.map((country) => (
+                  <div
+                    key={country}
+                    className="px-3 py-2 hover:bg-muted cursor-pointer"
+                    onClick={() => handleCountrySelect(country)}
+                  >
+                    {country}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+          <div className="mt-4">
+            <h3 className="text-sm font-medium mb-2">Popular Countries</h3>
+            <div className="flex flex-wrap gap-2">
+              {['United States', 'China', 'Germany', 'Japan', 'United Kingdom'].map((country) => (
+                <button
+                  key={country}
+                  onClick={() => handleCountrySelect(country)}
+                  className="text-xs px-2 py-1 bg-muted rounded-full hover:bg-accent hover:text-accent-foreground"
+                >
+                  {country}
+                </button>
+              ))}
+            </div>
           </div>
           
-          {/* Region/Country information section */}
-          <div className="mt-2 space-y-6">
-            <div className="border-b border-gray-200 dark:border-gray-700 pb-4">
-              <h2 className="text-lg font-semibold mb-3 flex items-center text-gray-900 dark:text-white">
-                <GlobeIcon className="mr-2 h-5 w-5 text-blue-500" />
-                {selectedCountry ? `${selectedCountry}` : (selectedRegion ? `${selectedRegion} Region` : 'Global View')}
-              </h2>
-              <p className="text-sm text-gray-600 dark:text-gray-400">
-                {selectedCountry 
-                  ? `Trade data and statistics for ${selectedCountry}.`
-                  : (selectedRegion 
-                    ? `Explore trade data for the ${selectedRegion} region.`
-                    : 'Select a country or region to see detailed information.')}
-              </p>
+          {!mapReady && (
+            <div className="mt-4 text-xs text-muted-foreground">
+              <div className="flex items-center">
+                <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-primary mr-2"></div>
+                <span>Loading map data...</span>
+              </div>
             </div>
-            
-            {isLoading ? (
-              <div className="space-y-4 animate-pulse">
-                <div className="h-8 w-3/4 bg-gray-200 dark:bg-gray-700 rounded"></div>
-                <div className="h-24 bg-gray-200 dark:bg-gray-700 rounded"></div>
-                <div className="h-24 bg-gray-200 dark:bg-gray-700 rounded"></div>
-                <div className="h-24 bg-gray-200 dark:bg-gray-700 rounded"></div>
-              </div>
-            ) : error ? (
-              <div className="bg-red-50 dark:bg-red-900/20 p-4 rounded-md">
-                <div className="flex items-start">
-                  <AlertCircle className="h-5 w-5 text-red-500 mt-0.5 mr-2" />
-                  <div>
-                    <h3 className="text-sm font-medium text-red-800 dark:text-red-200">Error loading data</h3>
-                    <p className="text-sm text-red-700 dark:text-red-300 mt-1">{error}</p>
-                  </div>
-                </div>
-              </div>
-            ) : (
-              <>
-                {/* API Country Data */}
-                {countryApiData && (
-                  <div className="space-y-4">
-                    <div className="grid grid-cols-1 gap-3">
-                      <Card className="bg-white/95 dark:bg-zinc-900/95">
-                        <CardHeader className="p-3 pb-1">
-                          <CardTitle className="text-sm">Total Trade</CardTitle>
-                          <CardDescription className="text-xs">Total value of imports and exports</CardDescription>
-                        </CardHeader>
-                        <CardContent className="p-3 pt-1">
-                          <div className="text-lg font-bold">
-                            {formatCurrency(countryApiData.summary.total_value)}
-                          </div>
-                          <p className="text-xs text-gray-500">
-                            Based on {formatNumber(countryApiData.summary.trade_count)} transactions
-                          </p>
-                        </CardContent>
-                      </Card>
-
-                      <div className="grid grid-cols-2 gap-3">
-                        <Card className="bg-white/95 dark:bg-zinc-900/95">
-                          <CardHeader className="p-3 pb-0">
-                            <CardTitle className="text-xs">Imports</CardTitle>
-                          </CardHeader>
-                          <CardContent className="p-3 pt-1">
-                            <div className="text-sm font-bold">
-                              {formatCurrency(countryApiData.summary.import_value)}
-                            </div>
-                            <p className="text-xs text-gray-500">
-                              {((countryApiData.summary.import_value / countryApiData.summary.total_value) * 100).toFixed(1)}% of total
-                            </p>
-                          </CardContent>
-                        </Card>
-
-                        <Card className="bg-white/95 dark:bg-zinc-900/95">
-                          <CardHeader className="p-3 pb-0">
-                            <CardTitle className="text-xs">Exports</CardTitle>
-                          </CardHeader>
-                          <CardContent className="p-3 pt-1">
-                            <div className="text-sm font-bold">
-                              {formatCurrency(countryApiData.summary.export_value)}
-                            </div>
-                            <p className="text-xs text-gray-500">
-                              {((countryApiData.summary.export_value / countryApiData.summary.total_value) * 100).toFixed(1)}% of total
-                            </p>
-                          </CardContent>
-                        </Card>
-                      </div>
-                    </div>
-                    
-                    {/* Yearly Trends */}
-                    {countryApiData.yearlyTrends && countryApiData.yearlyTrends.length > 0 && (
-                      <div>
-                        <h3 className="text-sm font-medium mb-2 flex items-center text-gray-900 dark:text-white">
-                          <InfoCircledIcon className="mr-2 h-4 w-4 text-blue-500" />
-                          Trade Trends
-                        </h3>
-                        <Card className="bg-white/95 dark:bg-zinc-900/95">
-                          <CardContent className="p-3">
-                            <div className="space-y-2 max-h-[150px] overflow-auto">
-                              {countryApiData.yearlyTrends.map((trend: any, index: number) => (
-                                <div key={index} className="flex justify-between items-center text-xs">
-                                  <span className="font-medium">{trend.year}</span>
-                                  <div className="flex space-x-4">
-                                    <div>
-                                      <span className="text-gray-500">Imports:</span> {formatCurrency(trend.import_value)}
-                                    </div>
-                                    <div>
-                                      <span className="text-gray-500">Exports:</span> {formatCurrency(trend.export_value)}
-                                    </div>
-                                  </div>
-                                </div>
-                              ))}
-                            </div>
-                          </CardContent>
-                        </Card>
-                      </div>
-                    )}
-                    
-                    {/* Product Categories */}
-                    {countryApiData.productCategories && (
-                      <div>
-                        <h3 className="text-sm font-medium mb-2 flex items-center text-gray-900 dark:text-white">
-                          <InfoCircledIcon className="mr-2 h-4 w-4 text-blue-500" />
-                          Top Products
-                        </h3>
-                        <Tabs.Root defaultValue="imports" className="w-full">
-                          <Tabs.List className="flex border-b border-gray-200 dark:border-gray-700 mb-2">
-                            <Tabs.Trigger 
-                              value="imports" 
-                              className="px-3 py-1 text-xs font-medium border-b-2 border-transparent data-[state=active]:border-blue-500 data-[state=active]:text-blue-600 dark:data-[state=active]:text-blue-400"
-                            >
-                              Imports
-                            </Tabs.Trigger>
-                            <Tabs.Trigger 
-                              value="exports" 
-                              className="px-3 py-1 text-xs font-medium border-b-2 border-transparent data-[state=active]:border-blue-500 data-[state=active]:text-blue-600 dark:data-[state=active]:text-blue-400"
-                            >
-                              Exports
-                            </Tabs.Trigger>
-                          </Tabs.List>
-                          
-                          <Tabs.Content value="imports">
-                            <Card className="bg-white/95 dark:bg-zinc-900/95">
-                              <CardContent className="p-3">
-                                <div className="max-h-[150px] overflow-auto">
-                                  {countryApiData.productCategories.imports.length > 0 ? (
-                                    <table className="w-full text-xs">
-                                      <thead>
-                                        <tr className="text-left border-b border-gray-200 dark:border-gray-700">
-                                          <th className="pb-1">Product</th>
-                                          <th className="pb-1">HS Code</th>
-                                          <th className="pb-1 text-right">Value</th>
-                                        </tr>
-                                      </thead>
-                                      <tbody>
-                                        {countryApiData.productCategories.imports.map((product: any, index: number) => (
-                                          <tr key={index} className="border-b border-gray-100 dark:border-gray-800">
-                                            <td className="py-1 font-medium truncate max-w-[120px]" title={product.product_name}>
-                                              {product.product_name}
-                                            </td>
-                                            <td className="py-1">{product.product_code}</td>
-                                            <td className="py-1 text-right">{formatCurrency(product.value)}</td>
-                                          </tr>
-                                        ))}
-                                      </tbody>
-                                    </table>
-                                  ) : (
-                                    <p className="text-center py-2 text-xs text-gray-500">No import data available</p>
-                                  )}
-                                </div>
-                              </CardContent>
-                            </Card>
-                          </Tabs.Content>
-                          
-                          <Tabs.Content value="exports">
-                            <Card className="bg-white/95 dark:bg-zinc-900/95">
-                              <CardContent className="p-3">
-                                <div className="max-h-[150px] overflow-auto">
-                                  {countryApiData.productCategories.exports.length > 0 ? (
-                                    <table className="w-full text-xs">
-                                      <thead>
-                                        <tr className="text-left border-b border-gray-200 dark:border-gray-700">
-                                          <th className="pb-1">Product</th>
-                                          <th className="pb-1">HS Code</th>
-                                          <th className="pb-1 text-right">Value</th>
-                                        </tr>
-                                      </thead>
-                                      <tbody>
-                                        {countryApiData.productCategories.exports.map((product: any, index: number) => (
-                                          <tr key={index} className="border-b border-gray-100 dark:border-gray-800">
-                                            <td className="py-1 font-medium truncate max-w-[120px]" title={product.product_name}>
-                                              {product.product_name}
-                                            </td>
-                                            <td className="py-1">{product.product_code}</td>
-                                            <td className="py-1 text-right">{formatCurrency(product.value)}</td>
-                                          </tr>
-                                        ))}
-                                      </tbody>
-                                    </table>
-                                  ) : (
-                                    <p className="text-center py-2 text-xs text-gray-500">No export data available</p>
-                                  )}
-                                </div>
-                              </CardContent>
-                            </Card>
-                          </Tabs.Content>
-                        </Tabs.Root>
-                      </div>
-                    )}
-                  </div>
-                )}
-                
-                {/* Mock Global/Region data (shown when no country is selected or API data is not available) */}
-                {!countryApiData && (
-                  <>
-                    {/* Global highlights section */}
-                    <div className="space-y-4">
-                      <h3 className="text-md font-medium flex items-center text-gray-900 dark:text-white">
-                        <BarChartIcon className="mr-2 h-4 w-4 text-blue-500" />
-                        {selectedRegion ? `${selectedRegion} Highlights` : 'Global Highlights'}
-                      </h3>
-                      <div className="space-y-3">
-                        {mockGlobalHighlights.slice(0, 3).map((highlight, index) => (
-                          <Card key={index} className="bg-white/95 dark:bg-zinc-900/95">
-                            <CardContent className="p-3">
-                              <div className="flex justify-between items-center">
-                                <div>
-                                  <h4 className="text-sm font-medium">{highlight.title}</h4>
-                                  <p className="text-xs text-gray-500 dark:text-gray-400">{highlight.description}</p>
-                                </div>
-                                <div className="text-right">
-                                  <div className="text-md font-bold">
-                                    {formatValue(highlight.value, highlight.isPercentage, highlight.isTrillion)}
-                                  </div>
-                                  <div className="text-xs">{formatTrend(highlight.trend)}</div>
-                                </div>
-                              </div>
-                            </CardContent>
-                          </Card>
-                        ))}
-                      </div>
-                    </div>
-                    
-                    {/* Region statistics (shows only when a region is selected) */}
-                    {regionData && (
-                      <div className="space-y-4">
-                        <h3 className="text-md font-medium flex items-center text-gray-900 dark:text-white">
-                          <InfoCircledIcon className="mr-2 h-4 w-4 text-blue-500" />
-                          Regional Statistics
-                        </h3>
-                        
-                        {/* Regional Economy Overview */}
-                        <Card className="bg-white/95 dark:bg-zinc-900/95">
-                          <CardHeader className="p-3 pb-1">
-                            <CardTitle className="text-sm">Economy Overview</CardTitle>
-                            <CardDescription className="text-xs">Key indicators</CardDescription>
-                          </CardHeader>
-                          <CardContent className="p-3 pt-1">
-                            <div className="space-y-2">
-                              {regionData.economyStats.slice(0, 3).map((stat, index) => (
-                                <div key={index} className="flex justify-between items-center">
-                                  <div className="flex items-center">
-                                    <div className="w-2 h-2 rounded-full bg-blue-500 mr-2"></div>
-                                    <span className="text-xs text-gray-700 dark:text-gray-300">{stat.name}</span>
-                                  </div>
-                                  <span className="text-xs font-medium">{formatValue(stat.value, stat.isPercentage)}</span>
-                                </div>
-                              ))}
-                            </div>
-                          </CardContent>
-                        </Card>
-                        
-                        {/* Regional Trade Balance */}
-                        <Card className="bg-white/95 dark:bg-zinc-900/95">
-                          <CardHeader className="p-3 pb-1">
-                            <CardTitle className="text-sm">Trade Balance</CardTitle>
-                            <CardDescription className="text-xs">Import/export balance</CardDescription>
-                          </CardHeader>
-                          <CardContent className="p-3 pt-1">
-                            <div className="space-y-2">
-                              <div className="flex justify-between">
-                                <span className="text-xs text-gray-700 dark:text-gray-300">Exports</span>
-                                <span className="text-xs font-medium">{formatValue(regionData.tradeBalance.exports)}</span>
-                              </div>
-                              <div className="flex justify-between">
-                                <span className="text-xs text-gray-700 dark:text-gray-300">Imports</span>
-                                <span className="text-xs font-medium">{formatValue(regionData.tradeBalance.imports)}</span>
-                              </div>
-                              <Separator.Root className="h-[1px] bg-gray-200 dark:bg-gray-700 my-1" />
-                              <div className="flex justify-between">
-                                <span className="text-xs font-medium text-gray-800 dark:text-gray-200">Balance</span>
-                                <span className={`text-xs font-medium ${regionData.tradeBalance.balance >= 0 ? 'text-green-500' : 'text-red-500'}`}>
-                                  {formatValue(regionData.tradeBalance.balance)}
-                                </span>
-                              </div>
-                            </div>
-                          </CardContent>
-                        </Card>
-                      </div>
-                    )}
-                  </>
-                )}
-              </>
-            )}
-          </div>
+          )}
         </div>
-        
-        {/* Main content area - intentionally left empty for full map display */}
-        <div className="col-span-9"></div>
+      </div>
+      
+      {/* Overlay content - information cards */}
+      <div className="absolute right-0 top-0 bottom-0 w-1/3 p-6 flex flex-col bg-background/90 backdrop-blur-sm z-10 overflow-y-auto">
+        <ClientOnly>
+          <div className="flex items-center mb-6">
+            <h1 className="text-3xl font-bold">Trade Dashboard</h1>
+            <Popover.Root>
+              <Popover.Trigger asChild>
+                <button className="ml-2 rounded-full hover:bg-muted p-1 inline-flex items-center justify-center">
+                  <InfoCircledIcon className="h-5 w-5 text-muted-foreground" />
+                </button>
+              </Popover.Trigger>
+              <Popover.Portal>
+                <Popover.Content
+                  className="w-80 p-4 rounded-md border bg-popover text-popover-foreground shadow-md animate-in fade-in-80 z-50"
+                  sideOffset={5}
+                >
+                  <div className="space-y-2">
+                    <h3 className="font-medium">About This Dashboard</h3>
+                    <p className="text-sm text-muted-foreground">
+                      This dashboard provides real-time global trade data visualization. Use the search feature to find specific countries, view detailed statistics, and analyze trade relationships between nations.
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      Data is sourced from international trade databases and updated quarterly.
+                    </p>
+                  </div>
+                  <Popover.Arrow className="fill-popover" />
+                </Popover.Content>
+              </Popover.Portal>
+            </Popover.Root>
+          </div>
+          
+          {selectedCountry && (
+            <div className="mb-4 bg-muted/70 p-3 rounded-md">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  {COUNTRY_TO_ISO[selectedCountry as keyof typeof COUNTRY_TO_ISO] && (
+                    <div className="w-6 h-4 relative">
+                      <img 
+                        src={`https://flagcdn.com/${COUNTRY_TO_ISO[selectedCountry as keyof typeof COUNTRY_TO_ISO]}.svg`} 
+                        alt={`${selectedCountry} flag`}
+                        className="w-full h-full object-cover rounded absolute"
+                        onError={(e) => {
+                          // Try alternative flag source if primary one fails
+                          const target = e.target as HTMLImageElement;
+                          const countryCode = COUNTRY_TO_ISO[selectedCountry as keyof typeof COUNTRY_TO_ISO];
+                          // Try another flag API as fallback
+                          target.src = `https://flagsapi.com/${countryCode.toUpperCase()}/flat/24.png`;
+                          
+                          // If second source also fails
+                          target.onerror = () => {
+                            // Try third fallback
+                            target.src = `https://cdn.jsdelivr.net/npm/country-flag-emoji-json@2.0.0/dist/images/${countryCode}.svg`;
+                            
+                            // If all sources fail, show a placeholder
+                            target.onerror = () => {
+                              target.style.display = 'none';
+                            };
+                          };
+                        }}
+                      />
+                    </div>
+                  )}
+                  <h2 className="text-xl font-semibold">{selectedCountry}</h2>
+                </div>
+                <button 
+                  onClick={clearSearch} 
+                  className="text-xs px-2 py-1 bg-muted hover:bg-accent hover:text-accent-foreground rounded-full"
+                >
+                  Clear Focus
+                </button>
+              </div>
+              <p className="text-sm text-muted-foreground mt-1">Viewing trade data related to {selectedCountry}</p>
+            </div>
+          )}
+          
+          {/* Global highlights at the top */}
+          <div className="grid grid-cols-2 gap-4 mb-6">
+            {mockGlobalHighlights.map((highlight, index) => (
+              <Card key={index} className="shadow-sm bg-background/80 backdrop-blur-sm">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-medium text-muted-foreground">{highlight.title}</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex justify-between items-center">
+                    <div className="text-2xl font-bold">{highlight.value}</div>
+                    {formatTrend(highlight.change)}
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">{highlight.description}</p>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+          
+          {/* Central content with tabs */}
+          <Card className="flex-grow mb-6 shadow-sm bg-background/80 backdrop-blur-sm">
+            <Tabs.Root defaultValue="overview" className="h-full flex flex-col">
+              <CardHeader className="pb-0">
+                <div className="flex justify-between items-center">
+                  <CardTitle>
+                    {selectedCountry 
+                      ? `${selectedCountry} Overview` 
+                      : selectedRegion 
+                        ? `${selectedRegion} Overview` 
+                        : 'Global Trade Analysis'}
+                  </CardTitle>
+                  <Tabs.List className="flex space-x-2">
+                    <Tabs.Trigger 
+                      value="overview" 
+                      className="px-3 py-1 rounded-md data-[state=active]:bg-muted"
+                    >
+                      <div className="flex items-center space-x-1">
+                        <InfoCircledIcon className="h-4 w-4" />
+                        <span>Overview</span>
+                      </div>
+                    </Tabs.Trigger>
+                    <Tabs.Trigger 
+                      value="statistics" 
+                      className="px-3 py-1 rounded-md data-[state=active]:bg-muted"
+                    >
+                      <div className="flex items-center space-x-1">
+                        <BarChartIcon className="h-4 w-4" />
+                        <span>Statistics</span>
+                      </div>
+                    </Tabs.Trigger>
+                    <Tabs.Trigger 
+                      value="relationships" 
+                      className="px-3 py-1 rounded-md data-[state=active]:bg-muted"
+                    >
+                      <div className="flex items-center space-x-1">
+                        <GlobeIcon className="h-4 w-4" />
+                        <span>Relationships</span>
+                      </div>
+                    </Tabs.Trigger>
+                  </Tabs.List>
+                </div>
+              </CardHeader>
+              <CardContent className="flex-grow overflow-auto pt-4">
+                <Tabs.Content value="overview" className="h-full">
+                  {regionData ? (
+                    <div className="space-y-6">
+                      <div className="grid grid-cols-3 gap-4">
+                        <Card className="bg-background/80">
+                          <CardHeader className="pb-2">
+                            <CardTitle className="text-sm">Population</CardTitle>
+                          </CardHeader>
+                          <CardContent>
+                            <div className="text-xl font-bold">{regionData.population} million</div>
+                          </CardContent>
+                        </Card>
+                        <Card className="bg-background/80">
+                          <CardHeader className="pb-2">
+                            <CardTitle className="text-sm">GDP</CardTitle>
+                          </CardHeader>
+                          <CardContent>
+                            <div className="text-xl font-bold">{formatValue(regionData.gdp, false, true)}</div>
+                          </CardContent>
+                        </Card>
+                        <Card className="bg-background/80">
+                          <CardHeader className="pb-2">
+                            <CardTitle className="text-sm">Trade Volume</CardTitle>
+                          </CardHeader>
+                          <CardContent>
+                            <div className="text-xl font-bold">{formatValue(regionData.tradeVolume, false, true)}</div>
+                          </CardContent>
+                        </Card>
+                      </div>
+                      
+                      <div>
+                        <h3 className="text-lg font-semibold mb-3">Top Trading Partners</h3>
+                        <div className="space-y-2">
+                          {regionData.topPartners.map((partner, index) => (
+                            <div key={index} className="flex justify-between items-center p-2 rounded-md bg-muted/70">
+                              <span>{partner.name}</span>
+                              <div className="flex items-center space-x-4">
+                                <span className="text-muted-foreground">{formatValue(partner.value)}</span>
+                                <span className="text-sm">{partner.percent.toFixed(1)}%</span>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                      
+                      <div>
+                        <h3 className="text-lg font-semibold mb-3">Key Products</h3>
+                        <div className="space-y-2">
+                          {regionData.keyProducts.map((product, index) => (
+                            <div key={index} className="flex justify-between items-center p-2 rounded-md bg-muted/70">
+                              <span>{product.name}</span>
+                              <div className="flex items-center space-x-4">
+                                <span className="text-muted-foreground">{formatValue(product.value)}</span>
+                                <span className="text-sm">{product.percent.toFixed(1)}%</span>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="h-full flex flex-col items-center justify-center text-center p-6">
+                      <GlobeIcon className="h-16 w-16 text-muted-foreground mb-4" />
+                      <h3 className="text-xl font-medium mb-2">Select a Country on the Map</h3>
+                      <p className="text-muted-foreground max-w-md">
+                        Click on a country on the map or use the search to view detailed trade data and statistics.
+                      </p>
+                    </div>
+                  )}
+                </Tabs.Content>
+                
+                <Tabs.Content value="statistics" className="h-full">
+                  <div className="space-y-6">
+                    <h3 className="text-lg font-semibold">Trade Statistics (2019-2023)</h3>
+                    <div className="space-y-4">
+                      {mockTradeStatistics.map((stat, index) => (
+                        <div key={index} className="p-3 rounded-md bg-muted/70">
+                          <div className="flex justify-between items-center mb-2">
+                            <span className="font-medium">{stat.year}</span>
+                            <span className={`text-sm ${stat.balance >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                              Balance: {formatValue(stat.balance)}
+                            </span>
+                          </div>
+                          <div className="grid grid-cols-2 gap-4">
+                            <div>
+                              <span className="text-sm text-muted-foreground">Imports</span>
+                              <div className="text-lg font-medium">{formatValue(stat.imports)}</div>
+                            </div>
+                            <div>
+                              <span className="text-sm text-muted-foreground">Exports</span>
+                              <div className="text-lg font-medium">{formatValue(stat.exports)}</div>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </Tabs.Content>
+                
+                <Tabs.Content value="relationships" className="h-full">
+                  <div className="space-y-6">
+                    <h3 className="text-lg font-semibold">Key Trade Relationships</h3>
+                    <div className="space-y-4">
+                      {mockTradeRelationships.map((relationship, index) => (
+                        <Card key={index} className="shadow-sm bg-background/80">
+                          <CardHeader className="pb-2">
+                            <CardTitle className="text-base flex items-center">
+                              {relationship.source} 
+                              <ChevronRightIcon className="mx-2 h-4 w-4" /> 
+                              {relationship.target}
+                            </CardTitle>
+                          </CardHeader>
+                          <CardContent>
+                            <div className="flex justify-between items-center mb-2">
+                              <span className="text-muted-foreground">Trade Volume</span>
+                              <span className="font-medium">{formatValue(relationship.value)}</span>
+                            </div>
+                            <div>
+                              <span className="text-sm text-muted-foreground">Key Products:</span>
+                              <div className="flex flex-wrap gap-2 mt-1">
+                                {relationship.products.map((product, idx) => (
+                                  <span key={idx} className="text-xs px-2 py-1 bg-muted rounded-full">
+                                    {product}
+                                  </span>
+                                ))}
+                              </div>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      ))}
+                    </div>
+                  </div>
+                </Tabs.Content>
+              </CardContent>
+            </Tabs.Root>
+          </Card>
+          
+          {/* Bottom insights */}
+          <Card className="shadow-sm bg-background/80 backdrop-blur-sm">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-base">Latest Insights</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-muted-foreground">
+                Global trade growth projected to increase by 3.5% in 2024, driven by technology sector expansion and recovery in manufacturing output across developing economies.
+              </p>
+            </CardContent>
+          </Card>
+        </ClientOnly>
       </div>
     </div>
   );
