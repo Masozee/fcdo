@@ -6,6 +6,14 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 
+// Data submenu items for dropdown
+const dataNavItems = [
+  { name: 'Data Table', href: '/data-table', description: 'Explore and filter trade data' },
+  { name: 'Map Dashboard', href: '/map-dashboard', description: 'Visualize global trade volumes' },
+  { name: 'Country Profiles', href: '/countries', description: 'View country trade profiles' },
+  { name: 'Interactive Map', href: '/interactive-map', description: 'Visualize global trade patterns' },
+];
+
 export function Header() {
   const [searchQuery, setSearchQuery] = useState('');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -56,40 +64,52 @@ export function Header() {
               <NavigationMenu.List className="flex space-x-6 text-lg">
                 {/* About Us */}
                 <NavigationMenu.Item>
-                  <span className="text-gray-400 font-semibold cursor-not-allowed">
+                  <Link href="/about" className="text-gray-800 font-semibold hover:text-gray-600 transition-colors">
                     About
-                  </span>
+                  </Link>
                 </NavigationMenu.Item>
                 
                 {/* Our Data */}
                 <NavigationMenu.Item>
-                  <span className="group flex items-center text-gray-400 font-semibold cursor-not-allowed">
+                  <NavigationMenu.Trigger className="group flex items-center text-gray-800 font-semibold hover:text-gray-600 transition-colors focus:outline-none">
                     <span>Our Data</span>
-                    <svg width="12" height="12" viewBox="0 0 12 12" xmlns="http://www.w3.org/2000/svg" className="ml-1 text-gray-400">
+                    <svg width="12" height="12" viewBox="0 0 12 12" xmlns="http://www.w3.org/2000/svg" className="ml-1 text-gray-800 group-hover:text-gray-600">
                       <path d="M6 8L2 4H10L6 8Z" fill="currentColor" />
                     </svg>
-                  </span>
+                  </NavigationMenu.Trigger>
+                  <NavigationMenu.Content className="absolute top-0 left-0 w-auto bg-white p-4 rounded-md shadow-lg">
+                    <ul className="grid grid-cols-1 gap-3 p-2 w-[220px]">
+                      {dataNavItems.map((item) => (
+                        <li key={item.href}>
+                          <Link href={item.href} className="block">
+                            <div className="font-bold text-gray-800">{item.name}</div>
+                            <p className="text-xs text-gray-600 mt-1">{item.description}</p>
+                          </Link>
+                        </li>
+                      ))}
+                    </ul>
+                  </NavigationMenu.Content>
                 </NavigationMenu.Item>
                 
                 {/* Publications */}
                 <NavigationMenu.Item>
-                  <span className="text-gray-400 font-semibold cursor-not-allowed">
+                  <Link href="/publications" className="text-gray-800 font-semibold hover:text-gray-600 transition-colors">
                     Publications
-                  </span>
+                  </Link>
                 </NavigationMenu.Item>
                 
                 {/* Teams */}
                 <NavigationMenu.Item>
-                  <span className="text-gray-400 font-semibold cursor-not-allowed">
+                  <Link href="/teams" className="text-gray-800 font-semibold hover:text-gray-600 transition-colors">
                     Teams
-                  </span>
+                  </Link>
                 </NavigationMenu.Item>
                 
                 {/* Contact Us */}
                 <NavigationMenu.Item>
-                  <span className="text-gray-400 font-semibold cursor-not-allowed">
+                  <Link href="/contact" className="text-gray-800 font-semibold hover:text-gray-600 transition-colors">
                     Contact Us
-                  </span>
+                  </Link>
                 </NavigationMenu.Item>
               </NavigationMenu.List>
               
@@ -159,47 +179,31 @@ export function Header() {
             </form>
             
             <nav className="flex flex-col space-y-4">
-              <span className="text-gray-400 font-semibold py-2 border-b border-gray-100 cursor-not-allowed">
+              <Link href="/about" className="text-gray-800 font-semibold py-2 border-b border-gray-100">
                 About
-              </span>
+              </Link>
               <div className="py-2 border-b border-gray-100">
-                <div className="font-semibold text-gray-400 mb-2 cursor-not-allowed">Our Data</div>
+                <div className="font-semibold text-gray-800 mb-2">Our Data</div>
                 <ul className="ml-4 space-y-3">
-                  <li>
-                    <span className="block cursor-not-allowed">
-                      <span className="font-bold text-gray-400">Data Table</span>
-                      <p className="text-xs text-gray-400 mt-1">Explore and filter trade data</p>
-                    </span>
-                  </li>
-                  <li>
-                    <span className="block cursor-not-allowed">
-                      <span className="font-bold text-gray-400">Trade Volume Map</span>
-                      <p className="text-xs text-gray-400 mt-1">Visualize global trade volumes</p>
-                    </span>
-                  </li>
-                  <li>
-                    <span className="block cursor-not-allowed">
-                      <span className="font-bold text-gray-400">Country Profiles</span>
-                      <p className="text-xs text-gray-400 mt-1">View country trade profiles</p>
-                    </span>
-                  </li>
-                  <li>
-                    <span className="block cursor-not-allowed">
-                      <span className="font-bold text-gray-400">Interactive Map</span>
-                      <p className="text-xs text-gray-400 mt-1">Visualize global trade patterns</p>
-                    </span>
-                  </li>
+                  {dataNavItems.map((item) => (
+                    <li key={item.href}>
+                      <Link href={item.href} className="block">
+                        <span className="font-bold text-gray-800">{item.name}</span>
+                        <p className="text-xs text-gray-600 mt-1">{item.description}</p>
+                      </Link>
+                    </li>
+                  ))}
                 </ul>
               </div>
-              <span className="text-gray-400 font-semibold py-2 border-b border-gray-100 cursor-not-allowed">
+              <Link href="/publications" className="text-gray-800 font-semibold py-2 border-b border-gray-100">
                 Publications
-              </span>
-              <span className="text-gray-400 font-semibold py-2 border-b border-gray-100 cursor-not-allowed">
+              </Link>
+              <Link href="/teams" className="text-gray-800 font-semibold py-2 border-b border-gray-100">
                 Teams
-              </span>
-              <span className="text-gray-400 font-semibold py-2 border-b border-gray-100 cursor-not-allowed">
+              </Link>
+              <Link href="/contact" className="text-gray-800 font-semibold py-2 border-b border-gray-100">
                 Contact Us
-              </span>
+              </Link>
             </nav>
           </div>
         </div>

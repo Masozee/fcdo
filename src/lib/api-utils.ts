@@ -107,4 +107,53 @@ export const getTotalTradeData = cache(async (year?: string) => {
   }
   
   return response.json();
+});
+
+/**
+ * Cached function to fetch countries trade data from the API
+ * @param year Optional year parameter
+ * @returns Cached countries trade data with global totals
+ */
+export const getCountriesTradeData = cache(async (year?: string) => {
+  const url = year ? `/api/countries/trade?year=${year}` : '/api/countries/trade';
+  const response = await fetch(url, {
+    next: {
+      // Revalidate after 1 hour (3600 seconds)
+      revalidate: 3600,
+    },
+  });
+  
+  if (!response.ok) {
+    throw new Error('Failed to fetch countries trade data');
+  }
+  
+  return response.json();
+});
+
+/**
+ * Cached function to fetch country-specific trade data
+ * @param countryCode Country code (Alpha-2)
+ * @param year Optional year parameter
+ * @returns Cached country-specific trade data
+ */
+export const getCountrySpecificTradeData = cache(async (countryCode: string, year?: string) => {
+  // Ensure the country code is uppercase for the API request
+  const upperCaseCountryCode = countryCode.toUpperCase();
+  
+  const url = year 
+    ? `/api/trade?country=${upperCaseCountryCode}&year=${year}` 
+    : `/api/trade?country=${upperCaseCountryCode}`;
+  
+  const response = await fetch(url, {
+    next: {
+      // Revalidate after 1 hour (3600 seconds)
+      revalidate: 3600,
+    },
+  });
+  
+  if (!response.ok) {
+    throw new Error(`Failed to fetch trade data for country ${upperCaseCountryCode}`);
+  }
+  
+  return response.json();
 }); 

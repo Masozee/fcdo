@@ -12,7 +12,6 @@ const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
   display: "swap",
-  weight: ["400", "500", "600", "700"],
 });
 
 const geistMono = Geist_Mono({
@@ -22,34 +21,51 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Indonesia's Strategic Dependency",
-  description: "Explore Indonesia's trade, investment, and supply chain risks with this CSIS dashboard, highlighting key sectors, economic partners, and resilience strategies.",
-  icons: {
-    icon: "/favicon.png",
-    apple: "/favicon.png",
+  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"),
+  title: {
+    default: "FCDO Trade Data Dashboard",
+    template: "%s | FCDO Trade Data Dashboard",
   },
-  openGraph: {
-    type: "website",
-    locale: "en_US",
-    url: "https://isdp.csis.or.id",
-    siteName: "Indonesia's Strategic Dependency",
-    title: "Indonesia's Strategic Dependency",
-    description: "Explore Indonesia's trade, investment, and supply chain risks with this CSIS dashboard, highlighting key sectors, economic partners, and resilience strategies.",
-    images: [
-      {
-        url: "/logo.png",
-        width: 1200,
-        height: 630,
-        alt: "Indonesia's Strategic Dependency"
-      }
-    ],
+  description: "FCDO Trade Data Dashboard to visualize trade data.",
+  robots: {
+    index: true,
+    follow: true,
   },
-  twitter: {
-    card: "summary_large_image",
-    title: "Indonesia's Strategic Dependency",
-    description: "Explore Indonesia's trade, investment, and supply chain risks with this CSIS dashboard, highlighting key sectors, economic partners, and resilience strategies.",
-    images: ["/logo.png"],
-  },
+};
+
+// Define security headers to fix CSP issues
+export const headers = () => {
+  return [
+    {
+      source: '/(.*)',
+      headers: [
+        {
+          key: 'Content-Security-Policy',
+          value: "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.googletagmanager.com https://*.vercel-scripts.com; connect-src 'self' https://*.vercel-scripts.com https://*.vercel-insights.com https://*.vercel-analytics.com https://*.google-analytics.com; img-src 'self' data: https://flagcdn.com https://*.githubusercontent.com https://*.github.io https://*.googleusercontent.com https://*.jsdelivr.net; style-src 'self' 'unsafe-inline'; font-src 'self' data: https://fonts.gstatic.com;"
+        },
+        {
+          key: 'X-Content-Type-Options',
+          value: 'nosniff'
+        },
+        {
+          key: 'X-Frame-Options',
+          value: 'DENY'
+        },
+        {
+          key: 'X-XSS-Protection',
+          value: '1; mode=block'
+        },
+        {
+          key: 'Referrer-Policy',
+          value: 'strict-origin-when-cross-origin'
+        },
+        {
+          key: 'Permissions-Policy',
+          value: 'camera=(), microphone=(), geolocation=()'
+        }
+      ]
+    }
+  ];
 };
 
 export default function RootLayout({
@@ -61,16 +77,30 @@ export default function RootLayout({
     <html lang="en" className="scroll-smooth">
       <head>
         {/* Google Analytics - Using next/script for proper loading */}
-        <Script 
-          src="https://www.googletagmanager.com/gtag/js?id=G-ND2RG57LN5"
+        <Script
           strategy="afterInteractive"
+          src={`https://www.googletagmanager.com/gtag/js?id=${process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID}`}
         />
-        <Script id="google-analytics" strategy="afterInteractive">
+        <Script
+          id="gtag-init"
+          strategy="afterInteractive"
+          dangerouslySetInnerHTML={{
+            __html: `
+              window.dataLayer = window.dataLayer || [];
+              function gtag(){dataLayer.push(arguments);}
+              gtag('js', new Date());
+              gtag('config', '${process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID}', {
+                page_path: window.location.pathname,
+              });
+            `,
+          }}
+        />
+        {/* Disable Vercel Script for development */}
+        <Script id="disable-vercel-analytics">
           {`
-            window.dataLayer = window.dataLayer || [];
-            function gtag(){dataLayer.push(arguments);}
-            gtag('js', new Date());
-            gtag('config', 'G-ND2RG57LN5');
+            if (window.location.hostname === 'localhost') {
+              window.va = function() {};
+            }
           `}
         </Script>
       </head>

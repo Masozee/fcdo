@@ -7,9 +7,19 @@ import * as Tabs from '@radix-ui/react-tabs';
 import * as Separator from '@radix-ui/react-separator';
 import { InfoCircledIcon, BarChartIcon, GlobeIcon, ChevronRightIcon, ReloadIcon, ArrowUpIcon, ArrowDownIcon, MagnifyingGlassIcon, Cross2Icon, PinRightIcon } from '@radix-ui/react-icons';
 import { mockGlobalHighlights, mockRegionData, mockTradeRelationships, mockTradeStatistics } from './mock-data';
-import { RegionData } from './types';
+import { RegionData, CountriesTradeResponse, CountryTradeItem, GlobalTotals, CountrySpecificTradeResponse, CountrySpecificTradeItem } from './types';
 import * as Popover from '@radix-ui/react-popover';
 import ClientOnly from '@/lib/use-client-only';
+import { getCountriesTradeData, getCountrySpecificTradeData } from '@/lib/api-utils';
+import { Search, ChevronRight, BarChart3, ArrowUpRight, TrendingUp, Globe, ChevronDown, CircleDot, X } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { formatNumber, formatCurrency } from '@/lib/utils';
+import { enhancedCountryCodeConverter, mapCountryNameToAlpha2 } from '@/lib/country-utils';
+import { Skeleton } from '@/components/ui/skeleton';
+import Link from 'next/link';
+import Image from 'next/image';
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetClose } from '@/components/ui/sheet';
 
 // Sample countries list (in a real application, this would come from your API)
 const SAMPLE_COUNTRIES = [
@@ -92,12 +102,45 @@ const COUNTRY_TO_ISO = {
 export default function MapDashboardPage() {
   const [selectedRegion, setSelectedRegion] = useState<string | null>(null);
   const [selectedCountry, setSelectedCountry] = useState<string | null>(null);
+  const [selectedCountryCode, setSelectedCountryCode] = useState<string | null>(null);
   const [mapReady, setMapReady] = useState<boolean>(false);
   const regionData = selectedRegion ? mockRegionData[selectedRegion] : null;
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [filteredCountries, setFilteredCountries] = useState<string[]>([]);
   const [showSuggestions, setShowSuggestions] = useState<boolean>(false);
   const [isSearchSticky, setIsSearchSticky] = useState<boolean>(false);
+  const [countriesTradeData, setCountriesTradeData] = useState<CountryTradeItem[]>([]);
+  const [globalTotals, setGlobalTotals] = useState<GlobalTotals | null>(null);
+  const [countrySpecificTradeData, setCountrySpecificTradeData] = useState<CountrySpecificTradeItem[]>([]);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [error, setError] = useState<string | null>(null);
+  const [selectedYear, setSelectedYear] = useState<string>('2023');
+  const [countryDataLoading, setCountryDataLoading] = useState<boolean>(false);
+  const [drawerOpen, setDrawerOpen] = useState<boolean>(false);
+
+  // Fetch countries trade data on component mount and when year changes
+  useEffect(() => {
+    async function fetchCountriesTradeData() {
+      try {
+        setIsLoading(true);
+        const response = await getCountriesTradeData(selectedYear);
+        
+        if (response.success) {
+          setCountriesTradeData(response.data.countries);
+          setGlobalTotals(response.data.globalTotals);
+        } else {
+          setError('Failed to load trade data');
+        }
+      } catch (err) {
+        console.error('Error fetching countries trade data:', err);
+        setError('Failed to load trade data');
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    
+    fetchCountriesTradeData();
+  }, [selectedYear]);
 
   // Available regions for mapping to countries
   const availableRegions = Object.keys(mockRegionData);
@@ -140,24 +183,48 @@ export default function MapDashboardPage() {
     // Check if the region is actually a country (when clicked on the map)
     if (SAMPLE_COUNTRIES.includes(region)) {
       // It's a country click from the map
-      setSelectedCountry(region);
-      setSearchQuery(region);
-      
-      // Find the appropriate region for this country
-      const countryRegion = COUNTRY_TO_REGION[region as keyof typeof COUNTRY_TO_REGION];
-      if (countryRegion) {
-        setSelectedRegion(countryRegion);
-      } else {
-        setSelectedRegion("Europe"); // Default fallback
-      }
+      handleCountrySelect(region);
     } else {
       // It's a regular region selection
       setSelectedRegion(region);
     }
   };
   
-  // Handle country selection (from search)
-  const handleCountrySelect = (country: string) => {
+  // Fetch country-specific trade data
+  const fetchCountrySpecificData = async (countryCode: string) => {
+    try {
+      setCountryDataLoading(true);
+      
+      // Make sure we're using alpha-2 code for the API
+      const alpha2Code = countryCode.length === 3 
+        ? (enhancedCountryCodeConverter(countryCode) || countryCode) 
+        : countryCode;
+      
+      // Get trade data specific to the country
+      const data = await getCountrySpecificTradeData(alpha2Code, selectedYear);
+      
+      if (data) {
+        setCountrySpecificTradeData(data);
+      }
+    } catch (error) {
+      console.error('Error fetching country data:', error);
+    } finally {
+      setCountryDataLoading(false);
+    }
+  };
+  
+  // Get ISO code from country name
+  const getCountryCode = (countryName: string): string | null => {
+    const isoCode = Object.entries(COUNTRY_TO_ISO).find(([name]) => 
+      name.toLowerCase() === countryName.toLowerCase()
+    );
+    
+    // Return the uppercase country code for API calls
+    return isoCode ? isoCode[1].toUpperCase() : null;
+  };
+  
+  // Handle country selection (from search or map click)
+  const handleCountrySelect = async (country: string) => {
     if (!mapReady) {
       console.warn("Map is not ready yet, waiting before focusing country");
       // Wait a bit before setting the country to focus
@@ -167,12 +234,19 @@ export default function MapDashboardPage() {
         setShowSuggestions(false);
         
         // Map the country to a region for our mock data
-        if (country.includes("United States") || country.includes("Canada") || country.includes("Mexico")) {
-          setSelectedRegion("North America");
-        } else if (country.includes("China") || country.includes("Japan") || country.includes("India")) {
-          setSelectedRegion("Asia");
+        const countryRegion = COUNTRY_TO_REGION[country as keyof typeof COUNTRY_TO_REGION];
+        if (countryRegion) {
+          setSelectedRegion(countryRegion);
         } else {
-          setSelectedRegion("Europe"); // Default to Europe for other countries in this example
+          setSelectedRegion("Europe"); // Default fallback
+        }
+        
+        // Get country code and fetch specific trade data
+        const countryCode = getCountryCode(country);
+        if (countryCode) {
+          setSelectedCountryCode(countryCode);
+          fetchCountrySpecificData(countryCode);
+          setDrawerOpen(true); // Open the drawer when a country is selected
         }
       }, 1000);
       return;
@@ -183,13 +257,19 @@ export default function MapDashboardPage() {
     setShowSuggestions(false);
     
     // Map the country to a region for our mock data
-    // In a real application, you'd look up the correct region for the country
-    if (country.includes("United States") || country.includes("Canada") || country.includes("Mexico")) {
-      setSelectedRegion("North America");
-    } else if (country.includes("China") || country.includes("Japan") || country.includes("India")) {
-      setSelectedRegion("Asia");
+    const countryRegion = COUNTRY_TO_REGION[country as keyof typeof COUNTRY_TO_REGION];
+    if (countryRegion) {
+      setSelectedRegion(countryRegion);
     } else {
-      setSelectedRegion("Europe"); // Default to Europe for other countries in this example
+      setSelectedRegion("Europe"); // Default fallback
+    }
+    
+    // Get country code and fetch specific trade data
+    const countryCode = getCountryCode(country);
+    if (countryCode) {
+      setSelectedCountryCode(countryCode);
+      fetchCountrySpecificData(countryCode);
+      setDrawerOpen(true); // Open the drawer when a country is selected
     }
   };
 
@@ -198,6 +278,9 @@ export default function MapDashboardPage() {
     setFilteredCountries([]);
     setShowSuggestions(false);
     setSelectedCountry(null);
+    setSelectedCountryCode(null);
+    setCountrySpecificTradeData([]);
+    setDrawerOpen(false); // Close the drawer when search is cleared
   };
 
   const formatValue = (value: string | number, isPercentage: boolean = false, trillions: boolean = false) => {
@@ -247,11 +330,36 @@ export default function MapDashboardPage() {
       {/* Map section - full screen background */}
       <div className="absolute inset-0 w-full h-full">
         <ClientOnly>
+          {isLoading && !countriesTradeData.length && (
+            <div className="absolute inset-0 flex items-center justify-center bg-background/50 backdrop-blur-sm z-30">
+              <div className="flex flex-col items-center space-y-4">
+                <div className="h-12 w-12 animate-spin rounded-full border-4 border-primary border-t-transparent"></div>
+                <p className="text-foreground font-medium">Loading trade data...</p>
+              </div>
+            </div>
+          )}
+          
+          {error && !countriesTradeData.length && (
+            <div className="absolute inset-0 flex items-center justify-center bg-background/50 backdrop-blur-sm z-30">
+              <div className="bg-background p-6 rounded-lg shadow-lg max-w-md">
+                <h3 className="text-xl font-bold text-red-500 mb-2">Error Loading Data</h3>
+                <p className="text-foreground mb-4">{error}</p>
+                <button 
+                  onClick={() => window.location.reload()}
+                  className="px-4 py-2 bg-primary text-primary-foreground rounded-md"
+                >
+                  Retry
+                </button>
+              </div>
+            </div>
+          )}
+          
           <D3TradeMap 
             onRegionSelect={handleRegionSelect} 
             isBackground={true} 
             focusCountry={selectedCountry}
             onMapReady={handleMapReady}
+            countriesData={countriesTradeData}
           />
         </ClientOnly>
       </div>
@@ -312,6 +420,27 @@ export default function MapDashboardPage() {
               </div>
             )}
           </div>
+          
+          {/* Year selector */}
+          <div className="mt-4">
+            <h3 className="text-sm font-medium mb-2">Year</h3>
+            <div className="grid grid-cols-3 gap-2">
+              {['2023', '2022', '2021'].map((year) => (
+                <button
+                  key={year}
+                  onClick={() => setSelectedYear(year)}
+                  className={`text-xs px-2 py-1 rounded-full ${
+                    selectedYear === year 
+                      ? 'bg-primary text-primary-foreground' 
+                      : 'bg-muted hover:bg-accent hover:text-accent-foreground'
+                  }`}
+                >
+                  {year}
+                </button>
+              ))}
+            </div>
+          </div>
+          
           <div className="mt-4">
             <h3 className="text-sm font-medium mb-2">Popular Countries</h3>
             <div className="flex flex-wrap gap-2">
@@ -338,290 +467,568 @@ export default function MapDashboardPage() {
         </div>
       </div>
       
-      {/* Overlay content - information cards */}
-      <div className="absolute right-0 top-0 bottom-0 w-1/3 p-6 flex flex-col bg-background/90 backdrop-blur-sm z-10 overflow-y-auto">
-        <ClientOnly>
-          <div className="flex items-center mb-6">
-            <h1 className="text-3xl font-bold">Trade Dashboard</h1>
-            <Popover.Root>
-              <Popover.Trigger asChild>
-                <button className="ml-2 rounded-full hover:bg-muted p-1 inline-flex items-center justify-center">
-                  <InfoCircledIcon className="h-5 w-5 text-muted-foreground" />
-                </button>
-              </Popover.Trigger>
-              <Popover.Portal>
-                <Popover.Content
-                  className="w-80 p-4 rounded-md border bg-popover text-popover-foreground shadow-md animate-in fade-in-80 z-50"
-                  sideOffset={5}
-                >
-                  <div className="space-y-2">
-                    <h3 className="font-medium">About This Dashboard</h3>
-                    <p className="text-sm text-muted-foreground">
-                      This dashboard provides real-time global trade data visualization. Use the search feature to find specific countries, view detailed statistics, and analyze trade relationships between nations.
-                    </p>
-                    <p className="text-sm text-muted-foreground">
-                      Data is sourced from international trade databases and updated quarterly.
-                    </p>
-                  </div>
-                  <Popover.Arrow className="fill-popover" />
-                </Popover.Content>
-              </Popover.Portal>
-            </Popover.Root>
-          </div>
+      {/* Drawer for country details */}
+      <Sheet open={drawerOpen} onOpenChange={setDrawerOpen}>
+        <SheetContent 
+          side="right" 
+          className="w-full p-6 pr-8 overflow-y-auto border-l border-border bg-background/95 backdrop-blur-sm max-w-md lg:max-w-lg transition-all duration-300 ease-in-out"
+          onOpenAutoFocus={(e) => e.preventDefault()} // Prevent auto-focus to keep map interactive
+        >
+          <SheetHeader className="mb-6">
+            <div className="flex items-center justify-between">
+              <SheetTitle className="text-3xl font-bold">Trade Dashboard</SheetTitle>
+              <SheetClose asChild>
+                <Button variant="ghost" size="icon" className="rounded-full" onClick={clearSearch}>
+                  <X className="h-4 w-4" />
+                  <span className="sr-only">Close</span>
+                </Button>
+              </SheetClose>
+            </div>
+          </SheetHeader>
           
-          {selectedCountry && (
-            <div className="mb-4 bg-muted/70 p-3 rounded-md">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  {COUNTRY_TO_ISO[selectedCountry as keyof typeof COUNTRY_TO_ISO] && (
-                    <div className="w-6 h-4 relative">
-                      <img 
-                        src={`https://flagcdn.com/${COUNTRY_TO_ISO[selectedCountry as keyof typeof COUNTRY_TO_ISO]}.svg`} 
-                        alt={`${selectedCountry} flag`}
-                        className="w-full h-full object-cover rounded absolute"
-                        onError={(e) => {
-                          // Try alternative flag source if primary one fails
-                          const target = e.target as HTMLImageElement;
-                          const countryCode = COUNTRY_TO_ISO[selectedCountry as keyof typeof COUNTRY_TO_ISO];
-                          // Try another flag API as fallback
-                          target.src = `https://flagsapi.com/${countryCode.toUpperCase()}/flat/24.png`;
-                          
-                          // If second source also fails
-                          target.onerror = () => {
-                            // Try third fallback
-                            target.src = `https://cdn.jsdelivr.net/npm/country-flag-emoji-json@2.0.0/dist/images/${countryCode}.svg`;
+          <ClientOnly>
+            {selectedCountry && (
+              <div className="mb-4 bg-muted/70 p-3 rounded-md">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    {COUNTRY_TO_ISO[selectedCountry as keyof typeof COUNTRY_TO_ISO] && (
+                      <div className="w-6 h-4 relative overflow-hidden rounded">
+                        <img 
+                          src={`https://flagcdn.com/${COUNTRY_TO_ISO[selectedCountry as keyof typeof COUNTRY_TO_ISO]}.svg`} 
+                          alt={`${selectedCountry} flag`}
+                          className="w-full h-full object-cover absolute"
+                          onError={(e) => {
+                            // Try alternative flag source if primary one fails
+                            const target = e.target as HTMLImageElement;
+                            const countryCode = COUNTRY_TO_ISO[selectedCountry as keyof typeof COUNTRY_TO_ISO];
+                            const upperCaseCode = countryCode.toUpperCase();
+                            // Replace with another flag API
+                            target.src = `https://purecatamphetamine.github.io/country-flag-icons/3x2/${upperCaseCode}.svg`;
                             
-                            // If all sources fail, show a placeholder
+                            // If second source also fails
                             target.onerror = () => {
+                              // Use a country emoji fallback
                               target.style.display = 'none';
                             };
-                          };
-                        }}
-                      />
-                    </div>
-                  )}
-                  <h2 className="text-xl font-semibold">{selectedCountry}</h2>
-                </div>
-                <button 
-                  onClick={clearSearch} 
-                  className="text-xs px-2 py-1 bg-muted hover:bg-accent hover:text-accent-foreground rounded-full"
-                >
-                  Clear Focus
-                </button>
-              </div>
-              <p className="text-sm text-muted-foreground mt-1">Viewing trade data related to {selectedCountry}</p>
-            </div>
-          )}
-          
-          {/* Global highlights at the top */}
-          <div className="grid grid-cols-2 gap-4 mb-6">
-            {mockGlobalHighlights.map((highlight, index) => (
-              <Card key={index} className="shadow-sm bg-background/80 backdrop-blur-sm">
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-medium text-muted-foreground">{highlight.title}</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="flex justify-between items-center">
-                    <div className="text-2xl font-bold">{highlight.value}</div>
-                    {formatTrend(highlight.change)}
+                          }}
+                        />
+                      </div>
+                    )}
+                    <h2 className="text-xl font-semibold">{selectedCountry}</h2>
                   </div>
-                  <p className="text-xs text-muted-foreground mt-1">{highlight.description}</p>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-          
-          {/* Central content with tabs */}
-          <Card className="flex-grow mb-6 shadow-sm bg-background/80 backdrop-blur-sm">
-            <Tabs.Root defaultValue="overview" className="h-full flex flex-col">
-              <CardHeader className="pb-0">
-                <div className="flex justify-between items-center">
-                  <CardTitle>
-                    {selectedCountry 
-                      ? `${selectedCountry} Overview` 
-                      : selectedRegion 
-                        ? `${selectedRegion} Overview` 
-                        : 'Global Trade Analysis'}
-                  </CardTitle>
-                  <Tabs.List className="flex space-x-2">
-                    <Tabs.Trigger 
-                      value="overview" 
-                      className="px-3 py-1 rounded-md data-[state=active]:bg-muted"
-                    >
-                      <div className="flex items-center space-x-1">
-                        <InfoCircledIcon className="h-4 w-4" />
-                        <span>Overview</span>
-                      </div>
-                    </Tabs.Trigger>
-                    <Tabs.Trigger 
-                      value="statistics" 
-                      className="px-3 py-1 rounded-md data-[state=active]:bg-muted"
-                    >
-                      <div className="flex items-center space-x-1">
-                        <BarChartIcon className="h-4 w-4" />
-                        <span>Statistics</span>
-                      </div>
-                    </Tabs.Trigger>
-                    <Tabs.Trigger 
-                      value="relationships" 
-                      className="px-3 py-1 rounded-md data-[state=active]:bg-muted"
-                    >
-                      <div className="flex items-center space-x-1">
-                        <GlobeIcon className="h-4 w-4" />
-                        <span>Relationships</span>
-                      </div>
-                    </Tabs.Trigger>
-                  </Tabs.List>
+                  <Badge variant="outline" className="text-xs px-2 py-1">
+                    {COUNTRY_TO_ISO[selectedCountry as keyof typeof COUNTRY_TO_ISO]?.toUpperCase()}
+                  </Badge>
                 </div>
-              </CardHeader>
-              <CardContent className="flex-grow overflow-auto pt-4">
-                <Tabs.Content value="overview" className="h-full">
-                  {regionData ? (
-                    <div className="space-y-6">
-                      <div className="grid grid-cols-3 gap-4">
-                        <Card className="bg-background/80">
+                <p className="text-sm text-muted-foreground mt-1">
+                  {countryDataLoading ? 'Loading trade data...' : `Viewing trade data related to ${selectedCountry}`}
+                </p>
+                {error && <p className="text-sm text-red-500 mt-1">{error}</p>}
+              </div>
+            )}
+            
+            {/* Global highlights at the top */}
+            <div className="grid grid-cols-2 gap-4 mb-6">
+              {selectedCountry && selectedCountryCode && countriesTradeData.length > 0 ? (
+                // If a country is selected, show its trade metrics
+                <>
+                  {(() => {
+                    // Find the selected country data
+                    const countryData = countriesTradeData.find(c => c.country === selectedCountryCode);
+                    if (!countryData) return null;
+                    
+                    // Calculate exports and imports percentage of global totals
+                    const exportsPercentage = globalTotals ? (countryData.exports / globalTotals.total_exports) * 100 : 0;
+                    const importsPercentage = globalTotals ? (countryData.imports / globalTotals.total_imports) * 100 : 0;
+                    
+                    return (
+                      <>
+                        <Card className="shadow-sm bg-background/80 backdrop-blur-sm">
                           <CardHeader className="pb-2">
-                            <CardTitle className="text-sm">Population</CardTitle>
+                            <CardTitle className="text-sm font-medium text-muted-foreground">Total Exports</CardTitle>
                           </CardHeader>
                           <CardContent>
-                            <div className="text-xl font-bold">{regionData.population} million</div>
+                            <div className="flex justify-between items-center">
+                              <div className="text-2xl font-bold">${(countryData.exports / 1000).toFixed(2)}B</div>
+                              <div className="text-xs text-muted-foreground">{exportsPercentage.toFixed(2)}% of global</div>
+                            </div>
                           </CardContent>
                         </Card>
-                        <Card className="bg-background/80">
+                        <Card className="shadow-sm bg-background/80 backdrop-blur-sm">
                           <CardHeader className="pb-2">
-                            <CardTitle className="text-sm">GDP</CardTitle>
+                            <CardTitle className="text-sm font-medium text-muted-foreground">Total Imports</CardTitle>
                           </CardHeader>
                           <CardContent>
-                            <div className="text-xl font-bold">{formatValue(regionData.gdp, false, true)}</div>
+                            <div className="flex justify-between items-center">
+                              <div className="text-2xl font-bold">${(countryData.imports / 1000).toFixed(2)}B</div>
+                              <div className="text-xs text-muted-foreground">{importsPercentage.toFixed(2)}% of global</div>
+                            </div>
                           </CardContent>
                         </Card>
-                        <Card className="bg-background/80">
+                        <Card className="shadow-sm bg-background/80 backdrop-blur-sm">
                           <CardHeader className="pb-2">
-                            <CardTitle className="text-sm">Trade Volume</CardTitle>
+                            <CardTitle className="text-sm font-medium text-muted-foreground">Total Trade</CardTitle>
                           </CardHeader>
                           <CardContent>
-                            <div className="text-xl font-bold">{formatValue(regionData.tradeVolume, false, true)}</div>
-                          </CardContent>
-                        </Card>
-                      </div>
-                      
-                      <div>
-                        <h3 className="text-lg font-semibold mb-3">Top Trading Partners</h3>
-                        <div className="space-y-2">
-                          {regionData.topPartners.map((partner, index) => (
-                            <div key={index} className="flex justify-between items-center p-2 rounded-md bg-muted/70">
-                              <span>{partner.name}</span>
-                              <div className="flex items-center space-x-4">
-                                <span className="text-muted-foreground">{formatValue(partner.value)}</span>
-                                <span className="text-sm">{partner.percent.toFixed(1)}%</span>
+                            <div className="flex justify-between items-center">
+                              <div className="text-2xl font-bold">${(countryData.total_trade / 1000).toFixed(2)}B</div>
+                              <div className="text-xs text-muted-foreground">
+                                {globalTotals ? ((countryData.total_trade / globalTotals.total_trade) * 100).toFixed(2) : 0}% of global
                               </div>
                             </div>
-                          ))}
-                        </div>
-                      </div>
-                      
-                      <div>
-                        <h3 className="text-lg font-semibold mb-3">Key Products</h3>
-                        <div className="space-y-2">
-                          {regionData.keyProducts.map((product, index) => (
-                            <div key={index} className="flex justify-between items-center p-2 rounded-md bg-muted/70">
-                              <span>{product.name}</span>
-                              <div className="flex items-center space-x-4">
-                                <span className="text-muted-foreground">{formatValue(product.value)}</span>
-                                <span className="text-sm">{product.percent.toFixed(1)}%</span>
-                              </div>
+                          </CardContent>
+                        </Card>
+                        <Card className="shadow-sm bg-background/80 backdrop-blur-sm">
+                          <CardHeader className="pb-2">
+                            <CardTitle className="text-sm font-medium text-muted-foreground">Trade Balance</CardTitle>
+                          </CardHeader>
+                          <CardContent>
+                            <div className="flex justify-between items-center">
+                              <div className="text-2xl font-bold">${((countryData.exports - countryData.imports) / 1000).toFixed(2)}B</div>
+                              {countryData.exports > countryData.imports ? (
+                                <ArrowUpIcon className="h-4 w-4 text-green-500" />
+                              ) : (
+                                <ArrowDownIcon className="h-4 w-4 text-red-500" />
+                              )}
                             </div>
-                          ))}
-                        </div>
+                          </CardContent>
+                        </Card>
+                      </>
+                    );
+                  })()}
+                </>
+              ) : (
+                // Otherwise, show the global highlights
+                mockGlobalHighlights.map((highlight, index) => (
+                  <Card key={index} className="shadow-sm bg-background/80 backdrop-blur-sm">
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-sm font-medium text-muted-foreground">{highlight.title}</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="flex justify-between items-center">
+                        <div className="text-2xl font-bold">{highlight.value}</div>
+                        {formatTrend(highlight.change)}
                       </div>
-                    </div>
-                  ) : (
-                    <div className="h-full flex flex-col items-center justify-center text-center p-6">
-                      <GlobeIcon className="h-16 w-16 text-muted-foreground mb-4" />
-                      <h3 className="text-xl font-medium mb-2">Select a Country on the Map</h3>
-                      <p className="text-muted-foreground max-w-md">
-                        Click on a country on the map or use the search to view detailed trade data and statistics.
-                      </p>
-                    </div>
-                  )}
-                </Tabs.Content>
-                
-                <Tabs.Content value="statistics" className="h-full">
-                  <div className="space-y-6">
-                    <div className="grid grid-cols-1 gap-6">
-                      {mockTradeStatistics.map((statGroup, index) => (
-                        <div key={index} className="bg-muted/70 p-4 rounded-md">
-                          <div className="mb-3">
-                            <h3 className="text-lg font-semibold">{statGroup.title}</h3>
-                            <p className="text-sm text-muted-foreground">{statGroup.description}</p>
-                          </div>
-                          <div className="space-y-4">
-                            {statGroup.data.map((item, itemIndex) => (
-                              <div key={itemIndex} className="flex justify-between items-center">
-                                <span>{item.name}</span>
-                                <span className="font-medium">{formatValue(item.value, item.isPercentage)}</span>
+                      <p className="text-xs text-muted-foreground mt-1">{highlight.description}</p>
+                    </CardContent>
+                  </Card>
+                ))
+              )}
+            </div>
+            
+            {/* Central content with tabs */}
+            <Card className="flex-grow mb-6 shadow-sm bg-background/80 backdrop-blur-sm">
+              <Tabs.Root defaultValue="overview" className="h-full flex flex-col">
+                <CardHeader className="pb-0">
+                  <div className="flex justify-between items-center">
+                    <CardTitle>
+                      {selectedCountry 
+                        ? `${selectedCountry} Overview` 
+                        : selectedRegion 
+                          ? `${selectedRegion} Overview` 
+                          : 'Global Trade Analysis'}
+                    </CardTitle>
+                    <Tabs.List className="flex space-x-2">
+                      <Tabs.Trigger 
+                        value="overview" 
+                        className="px-3 py-1 rounded-md data-[state=active]:bg-muted"
+                      >
+                        <div className="flex items-center space-x-1">
+                          <InfoCircledIcon className="h-4 w-4" />
+                          <span>Overview</span>
+                        </div>
+                      </Tabs.Trigger>
+                      <Tabs.Trigger 
+                        value="statistics" 
+                        className="px-3 py-1 rounded-md data-[state=active]:bg-muted"
+                      >
+                        <div className="flex items-center space-x-1">
+                          <BarChartIcon className="h-4 w-4" />
+                          <span>Statistics</span>
+                        </div>
+                      </Tabs.Trigger>
+                      <Tabs.Trigger 
+                        value="relationships" 
+                        className="px-3 py-1 rounded-md data-[state=active]:bg-muted"
+                      >
+                        <div className="flex items-center space-x-1">
+                          <GlobeIcon className="h-4 w-4" />
+                          <span>Relationships</span>
+                        </div>
+                      </Tabs.Trigger>
+                    </Tabs.List>
+                  </div>
+                </CardHeader>
+                <CardContent className="flex-grow overflow-auto pt-4">
+                  <Tabs.Content value="overview" className="h-full">
+                    {selectedCountry && selectedCountryCode && countrySpecificTradeData.length > 0 ? (
+                      <div className="space-y-6">
+                        <div className="grid grid-cols-3 gap-4">
+                          <Card className="bg-background/80">
+                            <CardHeader className="pb-2">
+                              <CardTitle className="text-sm">Region</CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                              <div className="text-xl font-bold">
+                                {countrySpecificTradeData[0]?.region || 'N/A'}
+                              </div>
+                            </CardContent>
+                          </Card>
+                          <Card className="bg-background/80">
+                            <CardHeader className="pb-2">
+                              <CardTitle className="text-sm">Sub-Region</CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                              <div className="text-xl font-bold">
+                                {countrySpecificTradeData[0]?.sub_region || 'N/A'}
+                              </div>
+                            </CardContent>
+                          </Card>
+                          <Card className="bg-background/80">
+                            <CardHeader className="pb-2">
+                              <CardTitle className="text-sm">Products Count</CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                              <div className="text-xl font-bold">
+                                {countrySpecificTradeData.length}
+                              </div>
+                            </CardContent>
+                          </Card>
+                        </div>
+                        
+                        <div>
+                          <h3 className="text-lg font-semibold mb-3">Top Products</h3>
+                          <div className="space-y-2">
+                            {countrySpecificTradeData.slice(0, 5).map((product, index) => (
+                              <div key={index} className="flex justify-between items-center p-2 rounded-md bg-muted/70">
+                                <span>{product.product_name}</span>
+                                <div className="flex items-center space-x-4">
+                                  <span className="text-muted-foreground">${(product.value / 1000).toFixed(2)}B</span>
+                                  <span className="text-sm">{(product.percent_trade || 0).toFixed(1)}%</span>
+                                </div>
                               </div>
                             ))}
                           </div>
                         </div>
-                      ))}
-                    </div>
-                  </div>
-                </Tabs.Content>
-                
-                <Tabs.Content value="relationships" className="h-full">
-                  <div className="space-y-6">
-                    <div>
-                      <h3 className="text-lg font-semibold mb-3">Product Categories</h3>
-                      <div className="space-y-2">
-                        {mockTradeRelationships.productCategories.map((category, index) => (
-                          <div key={index} className="flex justify-between items-center p-2 rounded-md bg-muted/70">
-                            <div className="flex items-center gap-2">
-                              <div className="w-3 h-3 rounded-full" style={{ backgroundColor: category.color }}></div>
-                              <span>{category.name}</span>
+                      </div>
+                    ) : regionData ? (
+                      <div className="space-y-6">
+                        <div className="grid grid-cols-3 gap-4">
+                          <Card className="bg-background/80">
+                            <CardHeader className="pb-2">
+                              <CardTitle className="text-sm">Population</CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                              <div className="text-xl font-bold">{regionData.population} million</div>
+                            </CardContent>
+                          </Card>
+                          <Card className="bg-background/80">
+                            <CardHeader className="pb-2">
+                              <CardTitle className="text-sm">GDP</CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                              <div className="text-xl font-bold">{formatValue(regionData.gdp, false, true)}</div>
+                            </CardContent>
+                          </Card>
+                          <Card className="bg-background/80">
+                            <CardHeader className="pb-2">
+                              <CardTitle className="text-sm">Trade Volume</CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                              <div className="text-xl font-bold">{formatValue(regionData.tradeVolume, false, true)}</div>
+                            </CardContent>
+                          </Card>
+                        </div>
+                        
+                        <div>
+                          <h3 className="text-lg font-semibold mb-3">Top Trading Partners</h3>
+                          <div className="space-y-2">
+                            {regionData.topPartners.map((partner, index) => (
+                              <div key={index} className="flex justify-between items-center p-2 rounded-md bg-muted/70">
+                                <span>{partner.name}</span>
+                                <div className="flex items-center space-x-4">
+                                  <span className="text-muted-foreground">{formatValue(partner.value)}</span>
+                                  <span className="text-sm">{partner.percent.toFixed(1)}%</span>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                        
+                        <div>
+                          <h3 className="text-lg font-semibold mb-3">Key Products</h3>
+                          <div className="space-y-2">
+                            {regionData.keyProducts.map((product, index) => (
+                              <div key={index} className="flex justify-between items-center p-2 rounded-md bg-muted/70">
+                                <span>{product.name}</span>
+                                <div className="flex items-center space-x-4">
+                                  <span className="text-muted-foreground">{formatValue(product.value)}</span>
+                                  <span className="text-sm">{product.percent.toFixed(1)}%</span>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="h-full flex flex-col items-center justify-center text-center p-6">
+                        <GlobeIcon className="h-16 w-16 text-muted-foreground mb-4" />
+                        <h3 className="text-xl font-medium mb-2">Select a Country on the Map</h3>
+                        <p className="text-muted-foreground max-w-md">
+                          Click on a country on the map or use the search to view detailed trade data and statistics.
+                        </p>
+                      </div>
+                    )}
+                  </Tabs.Content>
+                  
+                  <Tabs.Content value="statistics" className="h-full">
+                    {selectedCountry && selectedCountryCode && countrySpecificTradeData.length > 0 ? (
+                      <div className="space-y-6">
+                        <div className="grid grid-cols-1 gap-6">
+                          <div className="bg-muted/70 p-4 rounded-md">
+                            <div className="mb-3">
+                              <h3 className="text-lg font-semibold">Product Distribution</h3>
+                              <p className="text-sm text-muted-foreground">Top products by trade value</p>
                             </div>
-                            <div className="flex items-center gap-2">
-                              <span className="text-muted-foreground">{formatValue(category.value)}</span>
-                              <span className="text-sm">{category.percentage.toFixed(1)}%</span>
+                            <div className="space-y-4">
+                              {countrySpecificTradeData.slice(0, 10).map((item, index) => (
+                                <div key={index} className="flex justify-between items-center">
+                                  <span>{item.product_name}</span>
+                                  <span className="font-medium">${(item.value / 1000).toFixed(2)}B</span>
+                                </div>
+                              ))}
                             </div>
                           </div>
-                        ))}
-                      </div>
-                    </div>
-                    
-                    <div>
-                      <h3 className="text-lg font-semibold mb-3">Top Trading Partners</h3>
-                      <div className="space-y-2">
-                        {mockTradeRelationships.tradingPartners.map((partner, index) => (
-                          <div key={index} className="flex justify-between items-center p-2 rounded-md bg-muted/70">
-                            <span>{partner.name}</span>
-                            <div className="flex items-center gap-2">
-                              <span className="text-muted-foreground">{formatValue(partner.value)}</span>
-                              <span className="text-sm">{partner.percentage.toFixed(1)}%</span>
+                          
+                          <div className="bg-muted/70 p-4 rounded-md">
+                            <div className="mb-3">
+                              <h3 className="text-lg font-semibold">Trade Flow Distribution</h3>
+                              <p className="text-sm text-muted-foreground">Breakdown by import/export</p>
+                            </div>
+                            <div className="space-y-4">
+                              {(() => {
+                                // Group items by trade flow
+                                const groupedByTradeFlow = countrySpecificTradeData.reduce((acc: any, item) => {
+                                  const flowType = item.trade_flow || (item.tradeflow_id === 103 ? 'Export' : 'Import');
+                                  if (!acc[flowType]) {
+                                    acc[flowType] = { total: 0, count: 0 };
+                                  }
+                                  acc[flowType].total += item.value;
+                                  acc[flowType].count += 1;
+                                  return acc;
+                                }, {});
+                                
+                                return Object.entries(groupedByTradeFlow).map(([flow, data]: [string, any], index) => (
+                                  <div key={index} className="flex justify-between items-center">
+                                    <span>{flow} ({data.count} products)</span>
+                                    <span className="font-medium">${(data.total / 1000).toFixed(2)}B</span>
+                                  </div>
+                                ));
+                              })()}
                             </div>
                           </div>
-                        ))}
+                        </div>
                       </div>
-                    </div>
-                  </div>
-                </Tabs.Content>
+                    ) : (
+                      <div className="space-y-6">
+                        <div className="grid grid-cols-1 gap-6">
+                          {mockTradeStatistics.map((statGroup, index) => (
+                            <div key={index} className="bg-muted/70 p-4 rounded-md">
+                              <div className="mb-3">
+                                <h3 className="text-lg font-semibold">{statGroup.title}</h3>
+                                <p className="text-sm text-muted-foreground">{statGroup.description}</p>
+                              </div>
+                              <div className="space-y-4">
+                                {statGroup.data.map((item, itemIndex) => (
+                                  <div key={itemIndex} className="flex justify-between items-center">
+                                    <span>{item.name}</span>
+                                    <span className="font-medium">{formatValue(item.value, item.isPercentage)}</span>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </Tabs.Content>
+                  
+                  <Tabs.Content value="relationships" className="h-full">
+                    {selectedCountry && selectedCountryCode && countrySpecificTradeData.length > 0 ? (
+                      <div className="space-y-6">
+                        <div>
+                          <h3 className="text-lg font-semibold mb-3">HS Code Distribution</h3>
+                          <div className="space-y-2">
+                            {(() => {
+                              // Group products by HS code prefix (first 2 digits)
+                              interface HSGroupItem {
+                                code: string;
+                                value: number;
+                                percentage: number;
+                                name: string; // Description for the HS group
+                              }
+                              
+                              const groupedByHS: Record<string, HSGroupItem> = {};
+                              
+                              // Calculate total trade value
+                              const totalValue = countrySpecificTradeData.reduce((sum, item) => sum + item.value, 0);
+                              
+                              // Group by HS2 code
+                              countrySpecificTradeData.forEach(item => {
+                                if (!item.hs_code) return;
+                                
+                                const hs2Code = item.hs_code.substring(0, 2);
+                                const fullName = `${hs2Code}: ${item.product_name.split(' - ')[0] || item.product_name}`;
+                                
+                                if (!groupedByHS[hs2Code]) {
+                                  groupedByHS[hs2Code] = {
+                                    code: hs2Code,
+                                    value: 0,
+                                    percentage: 0,
+                                    name: fullName
+                                  };
+                                }
+                                
+                                groupedByHS[hs2Code].value += item.value;
+                                groupedByHS[hs2Code].percentage = (groupedByHS[hs2Code].value / totalValue) * 100;
+                              });
+                              
+                              // Convert to array and sort by value
+                              const hsGroups = Object.values(groupedByHS)
+                                .sort((a, b) => b.value - a.value)
+                                .slice(0, 8); // Show top 8 groups
+                              
+                              // Generate colors for HS groups
+                              const colors = [
+                                "#4361ee", "#3a0ca3", "#7209b7", "#f72585", 
+                                "#4cc9f0", "#4895ef", "#560bad", "#b5179e"
+                              ];
+                              
+                              return hsGroups.map((group, index) => (
+                                <div key={index} className="flex justify-between items-center p-2 rounded-md bg-muted/70">
+                                  <div className="flex items-center gap-2">
+                                    <div 
+                                      className="w-3 h-3 rounded-full" 
+                                      style={{ backgroundColor: colors[index % colors.length] }}
+                                    ></div>
+                                    <span>{group.name}</span>
+                                  </div>
+                                  <div className="flex items-center gap-2">
+                                    <span className="text-muted-foreground">${(group.value / 1000).toFixed(2)}B</span>
+                                    <span className="text-sm">{group.percentage.toFixed(1)}%</span>
+                                  </div>
+                                </div>
+                              ));
+                            })()}
+                          </div>
+                        </div>
+                        
+                        <div>
+                          <h3 className="text-lg font-semibold mb-3">Trade Flow Distribution</h3>
+                          <div className="space-y-2">
+                            {(() => {
+                              // Group items by trade flow
+                              interface TradeFlowItem {
+                                name: string;
+                                value: number;
+                                percentage: number;
+                                count: number;
+                              }
+                              
+                              const groupedByTradeFlow: Record<string, TradeFlowItem> = {};
+                              
+                              // Calculate total trade value
+                              const totalValue = countrySpecificTradeData.reduce((sum, item) => sum + item.value, 0);
+                              
+                              // Group by trade flow
+                              countrySpecificTradeData.forEach(item => {
+                                const flowType = item.trade_flow || (item.tradeflow_id === 103 ? 'Export' : 'Import');
+                                
+                                if (!groupedByTradeFlow[flowType]) {
+                                  groupedByTradeFlow[flowType] = {
+                                    name: flowType,
+                                    value: 0,
+                                    percentage: 0,
+                                    count: 0
+                                  };
+                                }
+                                
+                                groupedByTradeFlow[flowType].value += item.value;
+                                groupedByTradeFlow[flowType].count += 1;
+                                groupedByTradeFlow[flowType].percentage = (groupedByTradeFlow[flowType].value / totalValue) * 100;
+                              });
+                              
+                              // Convert to array
+                              const tradeFlows = Object.values(groupedByTradeFlow);
+                              
+                              return tradeFlows.map((flow, index) => (
+                                <div key={index} className="flex justify-between items-center p-2 rounded-md bg-muted/70">
+                                  <span>{flow.name} ({flow.count} products)</span>
+                                  <div className="flex items-center gap-2">
+                                    <span className="text-muted-foreground">${(flow.value / 1000).toFixed(2)}B</span>
+                                    <span className="text-sm">{flow.percentage.toFixed(1)}%</span>
+                                  </div>
+                                </div>
+                              ));
+                            })()}
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="space-y-6">
+                        <div>
+                          <h3 className="text-lg font-semibold mb-3">Product Categories</h3>
+                          <div className="space-y-2">
+                            {mockTradeRelationships.productCategories.map((category, index) => (
+                              <div key={index} className="flex justify-between items-center p-2 rounded-md bg-muted/70">
+                                <div className="flex items-center gap-2">
+                                  <div className="w-3 h-3 rounded-full" style={{ backgroundColor: category.color }}></div>
+                                  <span>{category.name}</span>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <span className="text-muted-foreground">{formatValue(category.value)}</span>
+                                  <span className="text-sm">{category.percentage.toFixed(1)}%</span>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                        
+                        <div>
+                          <h3 className="text-lg font-semibold mb-3">Top Trading Partners</h3>
+                          <div className="space-y-2">
+                            {mockTradeRelationships.tradingPartners.map((partner, index) => (
+                              <div key={index} className="flex justify-between items-center p-2 rounded-md bg-muted/70">
+                                <span>{partner.name}</span>
+                                <div className="flex items-center gap-2">
+                                  <span className="text-muted-foreground">{formatValue(partner.value)}</span>
+                                  <span className="text-sm">{partner.percentage.toFixed(1)}%</span>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </Tabs.Content>
+                </CardContent>
+              </Tabs.Root>
+            </Card>
+            
+            {/* Bottom insights */}
+            <Card className="shadow-sm bg-background/80 backdrop-blur-sm">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-base">Latest Insights</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm text-muted-foreground">
+                  Global trade growth projected to increase by 3.5% in 2024, driven by technology sector expansion and recovery in manufacturing output across developing economies.
+                </p>
               </CardContent>
-            </Tabs.Root>
-          </Card>
-          
-          {/* Bottom insights */}
-          <Card className="shadow-sm bg-background/80 backdrop-blur-sm">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-base">Latest Insights</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm text-muted-foreground">
-                Global trade growth projected to increase by 3.5% in 2024, driven by technology sector expansion and recovery in manufacturing output across developing economies.
-              </p>
-            </CardContent>
-          </Card>
-        </ClientOnly>
-      </div>
+            </Card>
+          </ClientOnly>
+        </SheetContent>
+      </Sheet>
     </div>
   );
 } 

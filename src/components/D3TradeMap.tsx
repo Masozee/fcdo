@@ -12,6 +12,9 @@ import * as ScrollArea from '@radix-ui/react-scroll-area';
 import * as RadioGroup from '@radix-ui/react-radio-group';
 import { useTheme } from '@/components/ui/theme-provider';
 import { getCountryTradeData, getHSCodeData } from '@/lib/api-utils';
+import { CountryTradeItem } from '@/app/map-dashboard/types';
+import { formatNumber, formatCurrency } from '@/lib/utils';
+import { enhancedCountryCodeConverter, mapCountryNameToAlpha2 } from '@/lib/country-utils';
 
 interface CountryFeature extends Feature {
   properties: {
@@ -64,9 +67,16 @@ interface D3TradeMapProps {
   isBackground?: boolean;
   focusCountry?: string | null;
   onMapReady?: () => void;
+  countriesData?: CountryTradeItem[];
 }
 
-export function D3TradeMap({ onRegionSelect, isBackground = false, focusCountry = null, onMapReady }: D3TradeMapProps) {
+export function D3TradeMap({ 
+  onRegionSelect, 
+  isBackground = false, 
+  focusCountry = null, 
+  onMapReady,
+  countriesData = []
+}: D3TradeMapProps) {
   const svgRef = useRef<SVGSVGElement>(null);
   const wrapperRef = useRef<HTMLDivElement>(null);
   const tooltipRef = useRef<HTMLDivElement>(null);
@@ -140,7 +150,7 @@ export function D3TradeMap({ onRegionSelect, isBackground = false, focusCountry 
 
   // Initialize and update D3 map
   useEffect(() => {
-    if (!svgRef.current || !wrapperRef.current || countries.length === 0) return;
+    if (!svgRef.current || !wrapperRef.current) return;
 
     const wrapper = d3.select(wrapperRef.current);
     const svg = d3.select(svgRef.current);
@@ -186,8 +196,47 @@ export function D3TradeMap({ onRegionSelect, isBackground = false, focusCountry 
     d3.json<WorldData>('/data/world-countries.json').then(worldData => {
       if (!worldData) return;
 
-      // Create better color scale for countries
-      const maxTradeValue = d3.max(countries, d => d.total) || 0;
+      // Create country name to ISO code mapping 
+      const countryNameToIso: Record<string, string> = {};
+      
+      // Function to map country names to ISO codes
+      const mapCountryNameToIso = (feature: CountryFeature): string | null => {
+        // First check if feature has an ID (which is usually the alpha-3 code)
+        if (feature.id) {
+          // Convert alpha-3 to alpha-2
+          const alpha2 = enhancedCountryCodeConverter(feature.id as string, 'alpha3', 'alpha2');
+          if (alpha2 && alpha2.length === 2) {
+            return alpha2;
+          }
+        }
+        
+        // If no ID or conversion failed, try name-based mapping
+        const name = feature.properties.name;
+        
+        // Use our utility function first
+        const alpha2 = mapCountryNameToAlpha2(name);
+        if (alpha2) {
+          return alpha2;
+        }
+        
+        return null;
+      };
+      
+      // Create the mapping
+      worldData.features.forEach(feature => {
+        const iso = mapCountryNameToIso(feature);
+        if (iso) {
+          countryNameToIso[feature.properties.name] = iso;
+        }
+      });
+
+      // Find max trade value for color scale
+      let maxTradeValue = 0;
+      if (countriesData && countriesData.length > 0) {
+        maxTradeValue = Math.max(...countriesData.map(d => d.total_trade));
+      } else if (countries.length > 0) {
+        maxTradeValue = Math.max(...countries.map(d => d.total));
+      }
       
       // Use a sequential color scale with customized domain for better visualization
       const colorScale = d3.scaleSequential(d3.interpolateBlues)
@@ -207,11 +256,42 @@ export function D3TradeMap({ onRegionSelect, isBackground = false, focusCountry 
         .attr("class", "country") // Add a class for easier selection
         .attr("fill", (feature) => {
           const countryName = feature.properties.name;
-          const countryData = countries.find(c => c.country === countryName);
           
-          // If the country has data, use a log scale for better color distribution
-          if (countryData && countryData.total > 0) {
-            return d3.interpolateBlues(logScale(countryData.total));
+          // Get the ID from the feature - this is usually the alpha-3 code
+          const countryId = feature.id as string;
+          
+          // Convert the alpha-3 code to alpha-2 for API data lookup
+          const alpha2Code = countryId ? enhancedCountryCodeConverter(countryId, 'alpha3', 'alpha2') : null;
+          
+          // If using countries trade API data
+          if (countriesData && countriesData.length > 0 && alpha2Code) {
+            const apiCountry = countriesData.find(c => c.country === alpha2Code);
+            if (apiCountry && apiCountry.total_trade > 0) {
+              return d3.interpolateBlues(logScale(apiCountry.total_trade));
+            }
+          } 
+          // Try a simple name mapping as fallback
+          else if (countryNameToIso[countryName]) {
+            const countryIso = countryNameToIso[countryName];
+            if (countriesData && countriesData.length > 0) {
+              const apiCountry = countriesData.find(c => c.country === countryIso);
+              if (apiCountry && apiCountry.total_trade > 0) {
+                return d3.interpolateBlues(logScale(apiCountry.total_trade));
+              }
+            }
+            
+            // Fallback to original data with name mapping
+            const countryData = countries.find(c => c.country === countryName);
+            if (countryData && countryData.total > 0) {
+              return d3.interpolateBlues(logScale(countryData.total));
+            }
+          }
+          // Final fallback to original data
+          else {
+            const countryData = countries.find(c => c.country === countryName);
+            if (countryData && countryData.total > 0) {
+              return d3.interpolateBlues(logScale(countryData.total));
+            }
           }
           
           // Use different default color for dark mode
@@ -221,13 +301,17 @@ export function D3TradeMap({ onRegionSelect, isBackground = false, focusCountry 
         .attr("stroke-width", 0.5)
         .on("mouseover", function(event, feature) {
           const countryName = feature.properties.name;
+          const countryId = feature.id as string;
+          const alpha2Code = countryId ? enhancedCountryCodeConverter(countryId, 'alpha3', 'alpha2') : null;
+          const countryIso = alpha2Code || mapCountryNameToIso(feature);
+          
           setHoveredCountry(countryName);
           
           d3.select(this)
             .attr("stroke", "#333")
             .attr("stroke-width", 1.5);
           
-          handleCountryHover(this, countryName, event, feature);
+          handleCountryHover(this, countryName, countryIso, event, feature);
         })
         .on("mouseout", function() {
           setHoveredCountry(null);
@@ -312,21 +396,39 @@ export function D3TradeMap({ onRegionSelect, isBackground = false, focusCountry 
         .attr("fill", isDarkMode ? "#e0e0e0" : "#333")
         .text("Total Trade Volume");
       
-      // Add legend labels
-      svg.append("text")
-        .attr("x", legendX)
-        .attr("y", legendY + legendHeight + 15)
-        .attr("font-size", "10px")
-        .attr("fill", isDarkMode ? "#e0e0e0" : "#333")
-        .text("$0");
+      // Create more informative legend labels
+      // Format large numbers with suffix
+      const formatNumber = (num: number) => {
+        if (num >= 1e12) return `$${(num / 1e12).toFixed(1)}T`;
+        if (num >= 1e9) return `$${(num / 1e9).toFixed(1)}B`;
+        if (num >= 1e6) return `$${(num / 1e6).toFixed(1)}M`;
+        if (num >= 1e3) return `$${(num / 1e3).toFixed(1)}K`;
+        return `$${num.toFixed(0)}`;
+      };
+      
+      // Add multiple ticks to the legend
+      const ticks = [0, maxTradeValue * 0.25, maxTradeValue * 0.5, maxTradeValue * 0.75, maxTradeValue];
+      ticks.forEach((tick, i) => {
+        const x = legendX + (legendWidth * i / (ticks.length - 1));
         
-      svg.append("text")
-        .attr("x", legendX + legendWidth)
-        .attr("y", legendY + legendHeight + 15)
-        .attr("font-size", "10px")
-        .attr("text-anchor", "end")
-        .attr("fill", isDarkMode ? "#e0e0e0" : "#333")
-        .text(`$${maxTradeValue.toLocaleString()}`);
+        // Add tick mark
+        svg.append("line")
+          .attr("x1", x)
+          .attr("x2", x)
+          .attr("y1", legendY + legendHeight)
+          .attr("y2", legendY + legendHeight + 4)
+          .attr("stroke", isDarkMode ? "#e0e0e0" : "#333")
+          .attr("stroke-width", 1);
+        
+        // Add label
+        svg.append("text")
+          .attr("x", x)
+          .attr("y", legendY + legendHeight + 15)
+          .attr("font-size", "8px")
+          .attr("text-anchor", i === 0 ? "start" : i === ticks.length - 1 ? "end" : "middle")
+          .attr("fill", isDarkMode ? "#e0e0e0" : "#333")
+          .text(formatNumber(tick));
+      });
 
       // Effect to handle focusing on a country when focusCountry prop changes
       if (focusCountry && countries.length > 0) {
@@ -407,58 +509,114 @@ export function D3TradeMap({ onRegionSelect, isBackground = false, focusCountry 
       // Store the zoom reference for use in other effects
       (window as any).__d3ZoomRef = zoom;
     };
-  }, [countries, selectedHSCode, selectedCountry, focusCountry, theme]);
+  }, [countriesData, countries, selectedHSCode, selectedCountry, focusCountry, theme]);
 
-  // Handle country hover
-  function handleCountryHover(element: any, countryName: string, event: any, feature: CountryFeature) {
-    if (!tooltipRef.current) return;
+  // Handle country hover to display tooltip
+  const handleCountryHover = (
+    element: SVGPathElement,
+    countryName: string,
+    countryIso: string | null,
+    event: any,
+    feature: CountryFeature
+  ) => {
+    if (!tooltipRef.current || !wrapperRef.current) return;
     
     const tooltip = d3.select(tooltipRef.current);
-    const countryData = countries.find(c => c.country === countryName);
     
-    // Calculate tooltip position to prevent overlap with the edges of the screen
-    const tooltipWidth = 200; // Approximate width
-    const tooltipHeight = 120; // Approximate height
+    // Get country data based on API data if available, fallback to internal data
+    let countryData: CountryTradeData | CountryTradeItem | null = null;
     
-    // Get viewport dimensions
-    const viewportWidth = window.innerWidth;
-    const viewportHeight = window.innerHeight;
+    if (countriesData && countriesData.length > 0 && countryIso) {
+      // Try to find this country in the API data by alpha-2 code
+      const apiCountry = countriesData.find(c => c.country === countryIso);
+      if (apiCountry) {
+        countryData = apiCountry;
+      }
+      
+      // If not found, try by feature ID (alpha-3 code) and convert to alpha-2
+      if (!countryData && feature.id) {
+        const alpha2Code = enhancedCountryCodeConverter(feature.id as string, 'alpha3', 'alpha2');
+        const apiCountryById = countriesData.find(c => c.country === alpha2Code);
+        if (apiCountryById) {
+          countryData = apiCountryById;
+        }
+      }
+    }
+    
+    // Fallback to internal data if no API data found
+    if (!countryData) {
+      const internalCountry = countries.find(c => c.country === countryName);
+      if (internalCountry) {
+        countryData = internalCountry;
+      }
+    }
     
     // Calculate tooltip position
-    let left = event.pageX + 10;
-    let top = event.pageY + 10;
+    const rect = element.getBoundingClientRect();
+    const wrapperRect = wrapperRef.current.getBoundingClientRect();
     
-    // Adjust if too close to right edge
-    if (left + tooltipWidth > viewportWidth - 20) {
-      left = event.pageX - tooltipWidth - 10;
-    }
+    const x = rect.x + rect.width / 2 - wrapperRect.x;
+    const y = rect.y + rect.height / 2 - wrapperRect.y;
     
-    // Adjust if too close to bottom edge
-    if (top + tooltipHeight > viewportHeight - 20) {
-      top = event.pageY - tooltipHeight - 10;
-    }
+    // Set tooltip content and position
+    tooltip
+      .style("left", `${x}px`)
+      .style("top", `${y}px`)
+      .style("opacity", 1);
     
+    // Format tooltip content
     if (countryData) {
-      tooltip
-        .style("opacity", 1)
-        .style("left", `${left}px`)
-        .style("top", `${top}px`)
-        .html(`
-          <div>
-            <strong>${countryName}</strong>
-            <div>Imports: $${countryData.imports.toLocaleString()}</div>
-            <div>Exports: $${countryData.exports.toLocaleString()}</div>
-            <div>Total Trade: $${countryData.total.toLocaleString()}</div>
-          </div>
-        `);
+      // Format numbers with commas
+      const formatNumber = (num: number) => {
+        return new Intl.NumberFormat('en-US', {
+          style: 'currency',
+          currency: 'USD',
+          maximumFractionDigits: 0,
+          notation: 'compact',
+          compactDisplay: 'short'
+        }).format(num);
+      };
+      
+      // Calculate trade balance
+      let imports = 0;
+      let exports = 0;
+      let total = 0;
+      
+      // Check if it's API data (CountryTradeItem) or internal data (CountryTradeData)
+      if ('total_trade' in countryData) {
+        imports = countryData.imports;
+        exports = countryData.exports;
+        total = countryData.total_trade;
+      } else {
+        imports = countryData.imports;
+        exports = countryData.exports;
+        total = countryData.total;
+      }
+      
+      const balance = exports - imports;
+      const balanceClass = balance >= 0 ? 'text-green-500' : 'text-red-500';
+      
+      // Update tooltip content
+      tooltip.html(`
+        <div class="font-bold">${countryName}</div>
+        <div class="grid grid-cols-2 gap-2 mt-1">
+          <div>Total Trade:</div>
+          <div class="text-right">${formatNumber(total)}</div>
+          <div>Imports:</div>
+          <div class="text-right">${formatNumber(imports)}</div>
+          <div>Exports:</div>
+          <div class="text-right">${formatNumber(exports)}</div>
+          <div>Balance:</div>
+          <div class="text-right ${balanceClass}">${formatNumber(balance)}</div>
+        </div>
+      `);
     } else {
-      tooltip
-        .style("opacity", 1)
-        .style("left", `${left}px`)
-        .style("top", `${top}px`)
-        .html(`<div><strong>${countryName}</strong><div>No trade data available</div></div>`);
+      tooltip.html(`
+        <div class="font-bold">${countryName}</div>
+        <div class="text-sm mt-1">No trade data available</div>
+      `);
     }
-  }
+  };
 
   // Handle window resize
   useEffect(() => {

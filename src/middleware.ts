@@ -1,43 +1,27 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from "next/server";
+import type { NextRequest } from 'next/server';
 
 export function middleware(request: NextRequest) {
-  // Skip processing for DuckDB API routes
-  if (request.nextUrl.pathname.startsWith('/api/duckdb/')) {
-    return NextResponse.next();
-  }
+  // Create a response with proper CSP headers
+  const response = NextResponse.next();
 
-  // Skip processing for our new direct API routes
-  if (request.nextUrl.pathname.match(/^\/api\/(export|import|total-trade|countries|country)$/)) {
-    return NextResponse.next();
-  }
+  // Set security headers
+  response.headers.set(
+    'Content-Security-Policy',
+    "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.googletagmanager.com https://*.vercel-scripts.com; connect-src 'self' https://*.vercel-scripts.com https://*.vercel-insights.com https://*.vercel-analytics.com https://*.google-analytics.com; img-src 'self' data: https://flagcdn.com https://*.githubusercontent.com https://*.github.io https://*.googleusercontent.com https://*.jsdelivr.net; style-src 'self' 'unsafe-inline'; font-src 'self' data: https://fonts.gstatic.com;"
+  );
+  response.headers.set('X-Content-Type-Options', 'nosniff');
+  response.headers.set('X-Frame-Options', 'DENY');
+  response.headers.set('X-XSS-Protection', '1; mode=block');
+  response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
+  response.headers.set('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
 
-  // Skip processing for country-specific routes
-  if (request.nextUrl.pathname.startsWith('/api/country/')) {
-    return NextResponse.next();
-  }
-
-  // Handle other API requests through Hono
-  if (request.nextUrl.pathname.startsWith('/api/')) {
-    // Forward to Hono handler
-    return NextResponse.next();
-  }
-
-  // For non-API requests, continue normal Next.js processing
-  return NextResponse.next();
+  return response;
 }
 
-// Configure the middleware to run on specific paths
+// Match all request paths except for static files and APIs that need special handling
 export const config = {
   matcher: [
-    /*
-     * Match all request paths except:
-     * - _next/static (static files)
-     * - _next/image (image optimization files)
-     * - favicon.ico (favicon file)
-     * - api/duckdb/ (DuckDB API routes)
-     * - api/export, api/import, api/total-trade, api/countries (Direct API routes)
-     * - api/country/ (Country API routes)
-     */
-    '/((?!_next/static|_next/image|favicon.ico|api/duckdb/|api/export|api/import|api/total-trade|api/countries|api/country/).*)',
+    '/((?!api|_next/static|_next/image|favicon.ico|public/).*)',
   ],
-}; 
+};

@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatNumber, formatCurrency } from "@/lib/utils";
+import { buildCountriesSummaryUrl } from "@/types/api-urls";
 
 // Map of country codes to regions
 const COUNTRY_INFO: Record<string, { name: string, region: string }> = {
@@ -33,23 +34,24 @@ const COUNTRY_INFO: Record<string, { name: string, region: string }> = {
 };
 
 interface CountryData {
-  country: string;
+  country_code: string;
+  country_name: string;
+  region: string;
+  sub_region: string;
   import_value: number;
   export_value: number;
-  total_value: number;
-  min_year: string;
-  max_year: string;
-  trade_count: number;
+  total_trade: number;
 }
 
-async function getCountriesData() {
+async function getCountriesData(year?: string) {
   try {
-    const response = await fetch('/api/total-trade?limit=50');
+    const url = buildCountriesSummaryUrl({ year });
+    const response = await fetch(url);
     if (!response.ok) {
       throw new Error('Failed to fetch countries data');
     }
     const data = await response.json();
-    return data.tradeSummary;
+    return data.data;
   } catch (error) {
     console.error('Error fetching countries data:', error);
     return [];
@@ -72,12 +74,15 @@ function CountriesList() {
   const [countries, setCountries] = useState<CountryData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [selectedYear, setSelectedYear] = useState<string>('2023');
+  
+  const availableYears = ['2023', '2022', '2021', '2020', '2019'];
 
   useEffect(() => {
     async function loadData() {
       try {
         setIsLoading(true);
-        const data = await getCountriesData();
+        const data = await getCountriesData(selectedYear);
         setCountries(data);
         setError(null);
       } catch (err) {
@@ -89,7 +94,7 @@ function CountriesList() {
     }
 
     loadData();
-  }, []);
+  }, [selectedYear]);
 
   if (isLoading) {
     return <CountriesLoading />;
@@ -103,7 +108,19 @@ function CountriesList() {
     <Card>
       <CardHeader>
         <CardTitle>Countries by Trade Volume</CardTitle>
-        <CardDescription>Top 50 countries ranked by total trade value</CardDescription>
+        <CardDescription>Countries ranked by total trade value for {selectedYear}</CardDescription>
+        <div className="flex items-center space-x-2 mt-2">
+          <span className="text-sm font-medium">Year:</span>
+          <select 
+            value={selectedYear} 
+            onChange={(e) => setSelectedYear(e.target.value)}
+            className="border rounded p-1 text-sm"
+          >
+            {availableYears.map(year => (
+              <option key={year} value={year}>{year}</option>
+            ))}
+          </select>
+        </div>
       </CardHeader>
       <CardContent>
         <div className="overflow-x-auto">
@@ -112,6 +129,7 @@ function CountriesList() {
               <TableRow>
                 <TableHead>Country</TableHead>
                 <TableHead>Region</TableHead>
+                <TableHead>Sub-Region</TableHead>
                 <TableHead>Total Trade</TableHead>
                 <TableHead>Imports</TableHead>
                 <TableHead>Exports</TableHead>
@@ -120,19 +138,22 @@ function CountriesList() {
             </TableHeader>
             <TableBody>
               {countries.map((country) => (
-                <TableRow key={country.country}>
+                <TableRow key={country.country_code}>
                   <TableCell className="font-medium">
-                    {COUNTRY_INFO[country.country]?.name || country.country}
+                    {country.country_name || country.country_code}
                   </TableCell>
                   <TableCell>
-                    {COUNTRY_INFO[country.country]?.region || 'Unknown'}
+                    {country.region || 'Unknown'}
                   </TableCell>
-                  <TableCell>{formatCurrency(country.total_value)}</TableCell>
+                  <TableCell>
+                    {country.sub_region || 'Unknown'}
+                  </TableCell>
+                  <TableCell>{formatCurrency(country.total_trade)}</TableCell>
                   <TableCell>{formatCurrency(country.import_value)}</TableCell>
                   <TableCell>{formatCurrency(country.export_value)}</TableCell>
                   <TableCell>
                     <Link 
-                      href={`/country/${country.country}`}
+                      href={`/country/${country.country_code}`}
                       className="text-blue-600 hover:text-blue-800 underline"
                     >
                       View Profile
@@ -151,10 +172,23 @@ function CountriesList() {
 export default function CountriesPage() {
   return (
     <div className="container mx-auto py-6 px-4 sm:px-6 lg:px-8">
-      <h1 className="text-2xl sm:text-3xl font-bold mb-6">Country Trade Profiles</h1>
-      <p className="text-gray-600 dark:text-gray-400 mb-8">
-        Browse trade data by country. Click on a country to view detailed trade information and statistics.
-      </p>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6">
+        <div>
+          <h1 className="text-2xl sm:text-3xl font-bold">Country Trade Profiles</h1>
+          <p className="text-gray-600 dark:text-gray-400 mt-2">
+            Browse trade data by country. Click on a country to view detailed trade information and statistics.
+          </p>
+        </div>
+        
+        <div className="mt-4 sm:mt-0">
+          <Link 
+            href="/countries/rankings" 
+            className="inline-flex items-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700"
+          >
+            View Rankings
+          </Link>
+        </div>
+      </div>
       
       <CountriesList />
     </div>
