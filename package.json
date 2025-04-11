@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "npm install tailwindcss postcss autoprefixer --legacy-peer-deps && next build",
+    "build": "npm install tailwindcss postcss autoprefixer --legacy-peer-deps && NODE_OPTIONS='--max-old-space-size=4096' next build",
     "start": "next start",
     "lint": "next lint",
     "update-deps": "npm update --force && npm install --force",
