@@ -8,10 +8,8 @@ import { usePathname } from 'next/navigation';
 
 // Data submenu items for dropdown
 const dataNavItems = [
-  { name: 'Data Table', href: '/data-table', description: 'Explore and filter trade data' },
   { name: 'Map Dashboard', href: '/map-dashboard', description: 'Visualize global trade volumes' },
-  { name: 'Country Profiles', href: '/countries', description: 'View country trade profiles' },
-  { name: 'Interactive Map', href: '/interactive-map', description: 'Visualize global trade patterns' },
+  { name: 'Data Table', href: '/data-table', description: 'Explore and filter trade data' },
 ];
 
 export function Header() {
@@ -77,7 +75,7 @@ export function Header() {
                       <path d="M6 8L2 4H10L6 8Z" fill="currentColor" />
                     </svg>
                   </NavigationMenu.Trigger>
-                  <NavigationMenu.Content className="absolute top-0 left-0 w-auto bg-white p-4 rounded-md shadow-lg">
+                  <NavigationMenu.Content className="absolute top-full left-0 mt-2 w-auto bg-white p-4 rounded-md shadow-lg">
                     <ul className="grid grid-cols-1 gap-3 p-2 w-[220px]">
                       {dataNavItems.map((item) => (
                         <li key={item.href}>

@@ -1,8 +1,19 @@
-# Hono API Endpoints
+# API Endpoints
 
-This project uses [Hono](https://github.com/honojs/hono) for API route handling. Hono is a small, simple, and ultrafast web framework for the Edges.
+This project provides several API endpoints for accessing trade data.
 
-## Available Endpoints
+## Active API Endpoints
+
+### Countries List
+
+**Endpoint:** `/api/countries/list`
+
+**Description:** Returns a list of all countries with their codes, names, and regions.
+
+**Example:**
+```
+GET /api/countries/list
+```
 
 ### Country Trade Data
 
@@ -31,6 +42,21 @@ GET /api/country-trade?year=2023
 ]
 ```
 
+### Trade Data
+
+**Endpoint:** `/api/trade`
+
+**Query Parameters:**
+- `country` (optional): Alpha-2 country code
+- `year` (optional): Filter by year
+- `tradeFlow` (optional): Filter by 'exports' (103) or 'imports' (102)
+- `hsCode` (optional): Product HS code
+
+**Example:**
+```
+GET /api/trade?country=US&year=2023&tradeFlow=exports
+```
+
 ### HS Codes Data
 
 **Endpoint:** `/api/hs-codes`
@@ -43,22 +69,42 @@ GET /api/country-trade?year=2023
 GET /api/hs-codes?level=hs2
 ```
 
-**Response:**
-```json
-{
-  "hs2": [
-    {
-      "code": "84",
-      "description": "Machinery and mechanical appliances",
-      "value": 2500000000000
-    },
-    ...
-  ]
-}
+### Total Trade Data
+
+**Endpoint:** `/api/total-trade`
+
+**Query Parameters:**
+- `year` (optional): Filter by year
+- `limit` (optional): Limit the number of results (default: 100)
+
+**Example:**
+```
+GET /api/total-trade?year=2023&limit=1000
+```
+
+### Countries Trade
+
+**Endpoint:** `/api/countries/trade`
+
+**Query Parameters:**
+- `year` (optional): Filter by year
+
+**Example:**
+```
+GET /api/countries/trade?year=2023
+```
+
+### Map Data
+
+**Endpoint:** `/api/map-data`
+
+**Description:** Returns GeoJSON data for map visualization.
+
+**Example:**
+```
+GET /api/map-data
 ```
 
 ## Implementation Details
 
-The API uses a catch-all route handler (`[...path]/route.ts`) to process all API requests through Hono. Each API endpoint is defined as a route in the Hono app instance.
-
-The database implementation automatically falls back to in-memory data when SQLite is not available or encounters errors. This ensures that the API always returns valid responses. 
+The APIs connect to a SQLite database to fetch trade data. They include fallback mechanisms to provide sample data when the database is not available or when requested data is not found. 

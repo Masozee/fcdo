@@ -1,0 +1,22 @@
+/** @type {import('next').NextConfig} */
+const nextConfig = {
+  reactStrictMode: true,
+  webpack: (config, { isServer }) => {
+    // Only apply these modifications for client-side bundles
+    if (!isServer) {
+      // Prevent client-side bundling of node-specific modules
+      config.resolve.fallback = {
+        ...config.resolve.fallback,
+        fs: false,
+        path: false,
+        sqlite3: false,
+        'better-sqlite3': false,
+        sqlite: false
+      };
+    }
+    
+    return config;
+  },
+};
+
+module.exports = nextConfig; 

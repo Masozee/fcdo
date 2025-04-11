@@ -63,7 +63,7 @@ function calculateGlobalTotals(countries: CountryTradeData[]) {
 }
 
 interface D3TradeMapProps {
-  onRegionSelect?: (region: string) => void;
+  onRegionSelect?: (region: string) => void | Promise<void>;
   isBackground?: boolean;
   focusCountry?: string | null;
   onMapReady?: () => void;
@@ -77,9 +77,10 @@ export function D3TradeMap({
   onMapReady,
   countriesData = []
 }: D3TradeMapProps) {
-  const svgRef = useRef<SVGSVGElement>(null);
+  const svgRef = useRef<SVGSVGElement | null>(null);
   const wrapperRef = useRef<HTMLDivElement>(null);
-  const tooltipRef = useRef<HTMLDivElement>(null);
+  const tooltipRef = useRef<HTMLDivElement | null>(null);
+  const containerRef = useRef<HTMLDivElement | null>(null);
   const [countries, setCountries] = useState<CountryTradeData[]>([]);
   const [hsData, setHSData] = useState<HSData>({ hs2: [], hs4: [], hs6: [] });
   const [selectedHSLevel, setSelectedHSLevel] = useState<HSLevel>('hs2');
@@ -103,6 +104,10 @@ export function D3TradeMap({
   const [compareMode, setCompareMode] = useState<boolean>(false);
   const [comparisonYear, setComparisonYear] = useState<TimePeriod | null>(null);
   const { theme } = useTheme();
+  const zoomRef = useRef<d3.ZoomBehavior<Element, unknown> | null>(null);
+
+  const [currentRegions, setCurrentRegions] = useState<d3.Selection<Element, unknown, null, undefined> | null>(null);
+  const [selectedRegion, setSelectedRegion] = useState<string | null>(null);
 
   // Fetch country trade data
   useEffect(() => {
@@ -180,7 +185,7 @@ export function D3TradeMap({
     const isDarkMode = document.documentElement.classList.contains('dark');
 
     // Create zoom behavior
-    const zoom = d3.zoom()
+    const zoom = d3.zoom<Element, unknown>()
       .scaleExtent([1, 8])
       .on("zoom", (event) => {
         svg.selectAll("path")
@@ -190,7 +195,65 @@ export function D3TradeMap({
     svg.call(zoom as any);
 
     // Store zoom behavior in a ref for access in other effects
-    const zoomRef = zoom;
+    zoomRef.current = zoom;
+    
+    // Ensure d3MapInstance is available globally
+    window.d3MapInstance = {
+      zoomIn: () => {
+        if (svgRef.current && zoomRef.current) {
+          console.log("Zooming in");
+          const currentTransform = d3.zoomTransform(svgRef.current);
+          const newScale = currentTransform.k * 1.5;
+          
+          d3.select(svgRef.current)
+            .transition()
+            .duration(300)
+            .call(
+              (zoomRef.current as any).transform,
+              d3.zoomIdentity
+                .translate(currentTransform.x, currentTransform.y)
+                .scale(newScale)
+            );
+        } else {
+          console.warn("Cannot zoom in - SVG or zoomRef not available");
+        }
+      },
+      zoomOut: () => {
+        if (svgRef.current && zoomRef.current) {
+          console.log("Zooming out");
+          const currentTransform = d3.zoomTransform(svgRef.current);
+          const newScale = currentTransform.k / 1.5;
+          
+          d3.select(svgRef.current)
+            .transition()
+            .duration(300)
+            .call(
+              (zoomRef.current as any).transform,
+              d3.zoomIdentity
+                .translate(currentTransform.x, currentTransform.y)
+                .scale(newScale > 1 ? newScale : 1)
+            );
+        } else {
+          console.warn("Cannot zoom out - SVG or zoomRef not available");
+        }
+      },
+      resetZoom: () => {
+        if (svgRef.current && zoomRef.current) {
+          console.log("Resetting zoom");
+          d3.select(svgRef.current)
+            .transition()
+            .duration(500)
+            .call(
+              (zoomRef.current as any).transform,
+              d3.zoomIdentity
+            );
+        } else {
+          console.warn("Cannot reset zoom - SVG or zoomRef not available");
+        }
+      }
+    };
+
+    console.log("Zoom methods initialized on window.d3MapInstance");
 
     // Load world map data
     d3.json<WorldData>('/data/world-countries.json').then(worldData => {
@@ -324,10 +387,12 @@ export function D3TradeMap({
             d3.select(tooltipRef.current).style("opacity", 0);
           }
         })
-        .on("click", function(event, feature) {
+        .on("click", async function(event, feature) {
+          event.stopPropagation(); // Prevent event bubbling
+          
           // Handle country click
           const countryName = feature.properties.name;
-          setSelectedCountry(countryName);
+          console.log("Map clicked on country:", countryName);
           
           // Highlight the selected country
           svg.selectAll("path.country")
@@ -338,9 +403,13 @@ export function D3TradeMap({
             .attr("stroke", "#ff6b6b")
             .attr("stroke-width", 2);
           
+          // Set selected country in state
+          setSelectedCountry(countryName);
+          
           // Notify the parent component about the country selection
           if (onRegionSelect) {
-            onRegionSelect(countryName);
+            console.log("Notifying parent about country selection:", countryName);
+            await onRegionSelect(countryName);
           }
         });
       
@@ -497,6 +566,58 @@ export function D3TradeMap({
 
       // Notify that the map is ready
       if (onMapReady) {
+        // Ensure zoom methods are still available before notifying parent
+        if (!window.d3MapInstance) {
+          console.warn("Re-initializing d3MapInstance before notifying parent");
+          // Re-initialize if somehow it got lost
+          window.d3MapInstance = {
+            zoomIn: () => {
+              if (svgRef.current && zoomRef.current) {
+                const currentTransform = d3.zoomTransform(svgRef.current);
+                const newScale = currentTransform.k * 1.5;
+                
+                d3.select(svgRef.current)
+                  .transition()
+                  .duration(300)
+                  .call(
+                    (zoomRef.current as any).transform,
+                    d3.zoomIdentity
+                      .translate(currentTransform.x, currentTransform.y)
+                      .scale(newScale)
+                  );
+              }
+            },
+            zoomOut: () => {
+              if (svgRef.current && zoomRef.current) {
+                const currentTransform = d3.zoomTransform(svgRef.current);
+                const newScale = currentTransform.k / 1.5;
+                
+                d3.select(svgRef.current)
+                  .transition()
+                  .duration(300)
+                  .call(
+                    (zoomRef.current as any).transform,
+                    d3.zoomIdentity
+                      .translate(currentTransform.x, currentTransform.y)
+                      .scale(newScale > 1 ? newScale : 1)
+                  );
+              }
+            },
+            resetZoom: () => {
+              if (svgRef.current && zoomRef.current) {
+                d3.select(svgRef.current)
+                  .transition()
+                  .duration(500)
+                  .call(
+                    (zoomRef.current as any).transform,
+                    d3.zoomIdentity
+                  );
+              }
+            }
+          };
+        }
+        
+        console.log("Notifying parent that map is ready");
         onMapReady();
       }
     }).catch(error => {
@@ -509,7 +630,7 @@ export function D3TradeMap({
       // Store the zoom reference for use in other effects
       (window as any).__d3ZoomRef = zoom;
     };
-  }, [countriesData, countries, selectedHSCode, selectedCountry, focusCountry, theme]);
+  }, [countriesData, countries, selectedHSCode, selectedCountry, focusCountry, theme, isLoading]);
 
   // Handle country hover to display tooltip
   const handleCountryHover = (
@@ -649,7 +770,7 @@ export function D3TradeMap({
     : [];
 
   // Handle country selection from search
-  const handleCountrySelect = (country: string) => {
+  const handleCountrySelect = async (country: string) => {
     setSelectedCountry(country);
     // Clear search after selection
     setSearchQuery('');
@@ -669,7 +790,7 @@ export function D3TradeMap({
     
     // Add this line to pass the selected country to the parent component
     if (onRegionSelect) {
-      onRegionSelect(country);
+      await onRegionSelect(country);
     }
   };
 
@@ -906,6 +1027,41 @@ export function D3TradeMap({
     }
   }, [isBackground]);
 
+  // Handle zoom event
+  const handleZoom = (event: d3.D3ZoomEvent<Element, unknown>) => {
+    if (!svgRef.current) return;
+    
+    // Apply the transform to all paths instead of a 'g' element
+    d3.select(svgRef.current).selectAll("path")
+      .attr("transform", event.transform.toString());
+  };
+
+  // Create D3 zoom behavior
+  useEffect(() => {
+    if (!svgRef.current || !wrapperRef.current) return;
+    
+    console.log("Setting up zoom behavior");
+    
+    // Set up zoom behavior
+    const zoom = d3.zoom<Element, unknown>()
+      .scaleExtent([1, 8])
+      .on('zoom', handleZoom);
+    
+    // Store the zoom behavior in the ref
+    zoomRef.current = zoom;
+    
+    // Apply zoom behavior to SVG
+    d3.select(svgRef.current)
+      .call(zoom as any);
+    
+    // Don't expose zoom methods here - they'll be exposed after the map is loaded
+    
+    return () => {
+      // Only clean up when component unmounts completely
+      console.log("Cleaning up zoom behavior");
+    };
+  }, []);
+
   // Render loading state
   if (isLoading) {
     return (
@@ -978,74 +1134,10 @@ export function D3TradeMap({
         <svg ref={svgRef} className="w-full h-full"></svg>
         <div 
           ref={tooltipRef} 
-          className="absolute pointer-events-none bg-card p-2 rounded shadow-lg border border-border text-card-foreground text-sm opacity-0 transition-opacity z-50 max-w-[250px]"
-          style={{ zIndex: 1000 }}
-        ></div>
-        
-        {/* Zoom controls */}
-        <div className="fixed bottom-1/4 left-16 flex flex-col gap-3 z-30">
-          <button 
-            onClick={() => {
-              if (!svgRef.current || !wrapperRef.current) return;
-              
-              const svg = d3.select(svgRef.current);
-              const wrapper = d3.select(wrapperRef.current);
-              
-              // Get current zoom transform
-              const transform = d3.zoomTransform(wrapper.node() as any);
-              
-              // Create zoom behavior
-              const zoom = d3.zoom()
-                .scaleExtent([1, 8])
-                .on("zoom", (event) => {
-                  svg.selectAll("path")
-                    .attr("transform", event.transform);
-                });
-              
-              // Apply zoom in transformation
-              wrapper.transition()
-                .duration(300)
-                .call(zoom.transform as any, 
-                      d3.zoomIdentity
-                        .translate(transform.x, transform.y)
-                        .scale(transform.k * 1.3));
-            }}
-            className="w-10 h-10 bg-background/90 backdrop-blur-sm border border-border rounded-full flex items-center justify-center text-lg font-bold shadow-md hover:bg-muted transition-colors"
-            aria-label="Zoom in"
-          >
-            +
-          </button>
-          <button 
-            onClick={() => {
-              if (!svgRef.current || !wrapperRef.current) return;
-              
-              const svg = d3.select(svgRef.current);
-              const wrapper = d3.select(wrapperRef.current);
-              
-              // Get current zoom transform
-              const transform = d3.zoomTransform(wrapper.node() as any);
-              
-              // Create zoom behavior
-              const zoom = d3.zoom()
-                .scaleExtent([1, 8])
-                .on("zoom", (event) => {
-                  svg.selectAll("path")
-                    .attr("transform", event.transform);
-                });
-              
-              // Apply zoom out transformation
-              wrapper.transition()
-                .duration(300)
-                .call(zoom.transform as any, 
-                      d3.zoomIdentity
-                        .translate(transform.x, transform.y)
-                        .scale(transform.k / 1.3));
-            }}
-            className="w-10 h-10 bg-background/90 backdrop-blur-sm border border-border rounded-full flex items-center justify-center text-lg font-bold shadow-md hover:bg-muted transition-colors"
-            aria-label="Zoom out"
-          >
-            -
-          </button>
+          className="absolute p-2 bg-background/90 backdrop-blur-sm rounded shadow-md border border-border text-sm pointer-events-none opacity-0 transition-opacity z-10"
+        >
+          <div className="font-semibold"></div>
+          <div className="text-muted-foreground"></div>
         </div>
       </div>
     );
@@ -1215,9 +1307,11 @@ export function D3TradeMap({
                   <svg ref={svgRef}></svg>
                   <div 
                     ref={tooltipRef} 
-                    className="absolute pointer-events-none bg-card p-2 rounded shadow-lg border border-border text-card-foreground text-sm opacity-0 transition-opacity z-50 max-w-[250px]"
-                    style={{ zIndex: 1000 }}
-                  ></div>
+                    className="absolute p-2 bg-background/90 backdrop-blur-sm rounded shadow-md border border-border text-sm pointer-events-none opacity-0 transition-opacity z-10"
+                  >
+                    <div className="font-semibold"></div>
+                    <div className="text-muted-foreground"></div>
+                  </div>
                 </div>
               </Tabs.Content>
               

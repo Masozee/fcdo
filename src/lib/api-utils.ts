@@ -1,6 +1,25 @@
 import { cache } from 'react';
 
 /**
+ * Cached function to fetch all countries from the API
+ * @returns Cached list of all countries
+ */
+export const getAllCountries = cache(async () => {
+  const response = await fetch('/api/countries/list', {
+    next: {
+      // Revalidate after 1 hour (3600 seconds)
+      revalidate: 3600,
+    },
+  });
+  
+  if (!response.ok) {
+    throw new Error('Failed to fetch countries list');
+  }
+  
+  return response.json();
+});
+
+/**
  * Cached function to fetch country trade data
  * @param year Optional year parameter
  * @returns Cached country trade data
@@ -137,23 +156,51 @@ export const getCountriesTradeData = cache(async (year?: string) => {
  * @returns Cached country-specific trade data
  */
 export const getCountrySpecificTradeData = cache(async (countryCode: string, year?: string) => {
-  // Ensure the country code is uppercase for the API request
-  const upperCaseCountryCode = countryCode.toUpperCase();
-  
-  const url = year 
-    ? `/api/trade?country=${upperCaseCountryCode}&year=${year}` 
-    : `/api/trade?country=${upperCaseCountryCode}`;
-  
-  const response = await fetch(url, {
-    next: {
-      // Revalidate after 1 hour (3600 seconds)
-      revalidate: 3600,
-    },
-  });
-  
-  if (!response.ok) {
-    throw new Error(`Failed to fetch trade data for country ${upperCaseCountryCode}`);
+  try {
+    // Ensure the country code is uppercase for the API request
+    const upperCaseCountryCode = countryCode.toUpperCase();
+    
+    const url = year 
+      ? `/api/trade?country=${upperCaseCountryCode}&year=${year}` 
+      : `/api/trade?country=${upperCaseCountryCode}`;
+    
+    console.log('Fetching country trade data from:', url);
+    
+    const response = await fetch(url, {
+      next: {
+        // Revalidate after 1 hour (3600 seconds)
+        revalidate: 3600,
+      },
+    });
+    
+    if (!response.ok) {
+      console.error(`API error (${response.status}): ${response.statusText}`);
+      return {
+        success: false,
+        data: [],
+        error: `Failed to fetch trade data for country ${upperCaseCountryCode} (Status ${response.status})`
+      };
+    }
+    
+    const data = await response.json();
+    console.log('API response data count:', data?.data?.length || 0);
+    
+    if (!data || !data.data || data.data.length === 0) {
+      return {
+        success: true,
+        data: [],
+        message: `No trade data found for country ${upperCaseCountryCode}`,
+      };
+    }
+    
+    return data;
+  } catch (error) {
+    console.error('Error in getCountrySpecificTradeData:', error);
+    // Return a structured error response instead of throwing
+    return {
+      success: false,
+      data: [],
+      error: error instanceof Error ? error.message : 'Unknown error occurred'
+    };
   }
-  
-  return response.json();
 }); 

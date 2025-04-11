@@ -50,7 +50,6 @@ export const API_URLS = {
   TRADE_SUMMARY: '/api/trade/summary',
   HS_CODES: '/api/trade/hs-codes',
   MAP_DATA: '/api/map-data',
-  TRADEFLOW: '/api/tradeflow',
   COUNTRIES_TRADE: '/api/countries/trade',
   COUNTRIES_SUMMARY: '/api/countries/summary',
   COUNTRIES_RANKINGS: '/api/countries/rankings'
