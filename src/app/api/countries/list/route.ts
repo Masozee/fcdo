@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import db from '@/lib/duckdb';
+import { openDb } from '@/lib/sqlite';
 
 /**
  * GET handler for /api/countries/list endpoint
@@ -7,9 +7,13 @@ import db from '@/lib/duckdb';
  */
 export async function GET(request: NextRequest) {
   try {
-    // Fetch all countries from the database
+    // Connect to the SQLite database instead of DuckDB
+    const db = await openDb();
+    console.log('SQLite database connection opened');
+    
+    // Fetch all countries from the database using SQLite instead of DuckDB
     // Use DISTINCT to ensure we don't get duplicates
-    const countries = await db.query(`
+    const query = `
       SELECT DISTINCT 
         country_name as name, 
         country_code as code,
@@ -17,7 +21,19 @@ export async function GET(request: NextRequest) {
         iso_code as iso
       FROM countries
       ORDER BY country_name ASC
-    `);
+    `;
+    
+    let countries;
+    try {
+      countries = await db.all(query);
+      console.log(`Retrieved ${countries.length} countries from SQLite database`);
+    } catch (error) {
+      console.error('Error executing SQLite query:', error);
+      throw error;
+    } finally {
+      await db.close();
+      console.log('SQLite database connection closed');
+    }
 
     // Add fallback countries that might not be in the database
     // to ensure comprehensive coverage
