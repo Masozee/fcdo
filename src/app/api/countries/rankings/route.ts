@@ -106,7 +106,10 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     console.error('Error fetching countries rankings data:', error);
     return NextResponse.json(
-      { success: false, error: 'Failed to fetch countries rankings data' },
+      { 
+        success: false,
+        error: error instanceof Error ? error.message : 'Failed to fetch countries rankings data'
+      },
       { status: 500 }
     );
   }

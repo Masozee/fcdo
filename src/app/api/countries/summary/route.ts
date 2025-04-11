@@ -76,7 +76,10 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     console.error('Error fetching countries summary data:', error);
     return NextResponse.json(
-      { success: false, error: 'Failed to fetch countries summary data' },
+      { 
+        success: false,
+        error: error instanceof Error ? error.message : 'Failed to fetch countries summary data'
+      },
       { status: 500 }
     );
   }

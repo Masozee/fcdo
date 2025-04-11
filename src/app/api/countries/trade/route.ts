@@ -132,7 +132,10 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     console.error('Error fetching countries trade data:', error);
     return NextResponse.json(
-      { success: false, error: 'Failed to fetch countries trade data' },
+      { 
+        success: false,
+        error: error instanceof Error ? error.message : 'Failed to fetch countries trade data'
+      },
       { status: 500 }
     );
   }
