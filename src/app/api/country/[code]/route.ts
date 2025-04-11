@@ -14,13 +14,12 @@ import {
  * Combines aggregate stats with detailed breakdowns by trade type, product categories, and time periods
  */
 export async function GET(
-  request: NextRequest,
-  { params }: { params: { code: string } }
+  request: NextRequest
 ) {
   try {
-    // Extract country code from URL parameter and ensure it's uppercase - fix async issue
-    const paramsParsed = await Promise.resolve(params);
-    const countryCode = paramsParsed.code.toUpperCase();
+    // Extract country code from URL path
+    const pathParts = new URL(request.url).pathname.split('/');
+    const countryCode = pathParts[pathParts.length - 1].toUpperCase();
     
     // Parse query parameters
     const url = new URL(request.url);

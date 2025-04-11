@@ -44,13 +44,14 @@ const publicationsData = [
   }
 ];
 
-interface PublicationDetailPageProps {
+// Define the correct type for page props with dynamic params
+type PublicationPageProps = {
   params: {
     slug: string
   }
 }
 
-export default function PublicationDetailPage({ params }: PublicationDetailPageProps) {
+export default function PublicationDetailPage({ params }: PublicationPageProps) {
   const [isCopied, setIsCopied] = useState(false);
   
   // Find the publication by slug
