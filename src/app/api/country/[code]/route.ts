@@ -8,18 +8,23 @@ import {
   TradeFlow,
   ProductCategory
 } from '@/types/country-api';
+import { RouteHandlerContext } from '@/types/next';
+
+type CountryParams = {
+  code: string;
+};
 
 /**
  * API route to get comprehensive data for a specific country by ISO code
  * Combines aggregate stats with detailed breakdowns by trade type, product categories, and time periods
  */
 export async function GET(
-  request: NextRequest
+  request: NextRequest,
+  { params }: RouteHandlerContext<CountryParams>
 ) {
   try {
-    // Extract country code from URL path
-    const pathParts = new URL(request.url).pathname.split('/');
-    const countryCode = pathParts[pathParts.length - 1].toUpperCase();
+    // Extract country code from the context params
+    const countryCode = params.code.toUpperCase();
     
     // Parse query parameters
     const url = new URL(request.url);

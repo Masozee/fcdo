@@ -5,7 +5,8 @@ const nextConfig = {
     ignoreDuringBuilds: true,
   },
   typescript: {
-    // Temporarily ignore type errors during build to fix deployment
+    // Temporarily ignore type errors during build
+    // We need this until we can properly fix the route handler types in Next.js 15
     ignoreBuildErrors: true,
   },
   webpack: (config, { isServer }) => {
