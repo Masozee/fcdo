@@ -21,8 +21,18 @@ const nextConfig = {
       };
     }
     
+    // Ensure proper path alias resolution
+    config.resolve.alias = {
+      ...config.resolve.alias,
+      '@': require('path').resolve(__dirname, './src')
+    };
+    
     return config;
   },
+  experimental: {
+    // Add any experimental features here
+    esmExternals: true,
+  }
 };
 
 module.exports = nextConfig; 
